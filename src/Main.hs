@@ -13,9 +13,6 @@ import           Data.List              (isInfixOf)
 import           Data.Foldable
 import           Control.Exception.Base
 
-import qualified Data.Set as S
-
-
 --  _   _ _   _ _     
 -- | | | | |_(_) |___ 
 -- | | | | __| | / __|
@@ -32,14 +29,6 @@ applyOnCollection filt mono dir = do
         let file = dir <> filename
         l <- runX $ readDocument [ withValidate no ] file >>> filt
         return $ mono file l
-
-setOfGramm :: FilePath -> IO (S.Set String)
-setOfGramm = applyOnCollection (deep filt) (const S.fromList)
- where filt = isElem
-          >>> hasName "information-grammaticale"
-          >>> getChildren
-          >>> isText
-          >>> getText
 
 -- Map from (word,acceptation) to file it is stored in
 type LexieId = (String,String)
@@ -407,44 +396,13 @@ readLexie lid path = do
      []  -> throwXml $ "Lexie " <> show lid <> " not present in file " <> path
      x:_ -> return x
 
--- testing
-runEndo :: LexieId -> FilePath -> (IOSLA (XIOState ()) XmlTree (Endo Lexie)) -> IO [Lexie]
-runEndo lid path arrow =
-    runX $ readDocument [ withValidate no ] path
-        /> inLexie lid
-        /> arrow
-        >. id
-       >>> isA (not . null)
-       >>> arr (appEndo . fold)
-       >>^ ($ defaultLexie)
- where defaultLexie = Lexie
-                    { identificateur = fst lid
-                    , acception      = snd lid
-                    , grammatics     = Nm Name
-                    , definition     = ""
-                    , domain         = ""
-                    , actants        = []
-                    , synonyms       = []
-                    , lexical_links  = []
-                    , contexts       = []
-                    }
 
-runAny :: LexieId -> FilePath -> (IOSLA (XIOState ()) XmlTree a) -> IO [a]
-runAny lid path arrow =
-    runX $ readDocument [ withValidate no ] path
-        /> inLexie lid
-        /> arrow
-
-test = runEndo ("polluer", "1a") "out/polluer.xml"
-testAny = runAny ("polluer", "1a") "out/polluer.xml"
-
-
-
-
-
-ressourcesDirectory :: FilePath
--- ressourcesDirectory = "/home/luc/school/ens/annee2/s2/rc/dicoEnviro/dicoEnviro-fr/"
-ressourcesDirectory = "/home/luc/school/ens/annee2/s2/code/out/"
+--  ____  _           
+-- |  _ \(_) ___ ___  
+-- | | | | |/ __/ _ \ 
+-- | |_| | | (_| (_) |
+-- |____/|_|\___\___/ 
+--                    
 
 findWordAndAcceptations :: ArrowXml a => a XmlTree (String,String)
 findWordAndAcceptations = deep
@@ -463,6 +421,11 @@ findWordAndAcceptations = deep
 buildDico :: FilePath -> IO Dico
 buildDico = applyOnCollection findWordAndAcceptations
                             $ \file -> M.fromList . fmap (,file)
+
+dicoLookup :: Dico -> LexieId -> IO Lexie
+dicoLookup dico lid = case M.lookup lid dico of
+                       Just path -> readLexie lid path
+                       Nothing   -> throwXml $ "Lexie " <> show lid <> " not present"
 
 
 main :: IO ()
