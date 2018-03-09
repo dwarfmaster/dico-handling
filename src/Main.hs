@@ -157,10 +157,19 @@ set_acception  a = Endo $ \l -> l { acception      = a }
 set_grammatics g = Endo $ \l -> l { grammatics     = g }
 set_definition d = Endo $ \l -> l { definition     = d }
 set_domain     d = Endo $ \l -> l { domain         = d }
-add_actant     a = Endo $ \l -> l { actants        = a : actants       l }
 add_synonym    s = Endo $ \l -> l { synonyms       = s : synonyms      l }
 add_llink      k = Endo $ \l -> l { lexical_links  = k : lexical_links l }
 add_context    c = Endo $ \l -> l { contexts       = c : contexts      l }
+
+comb_actant :: Actant -> Actant -> Actant
+comb_actant (Actant n1 e1 r1) (Actant _ e2 r2) = Actant n1 e (r1 <> r2)
+ where e = if null e1 then e2 else e1
+update_actants :: Actant -> [Actant] -> [Actant]
+update_actants a [] = [a]
+update_actants a@(Actant n _ _) (f@(Actant n' _ _) : l) = if n == n'
+                                                          then comb_actant a f : l
+                                                          else f : update_actants a l
+add_actant     a = Endo $ \l -> l { actants = update_actants a $ actants l }
 
 --  _____ _ _ _                
 -- |  ___(_) | |_ ___ _ __ ___ 
@@ -229,14 +238,14 @@ getDomain =
   /> isText >>> getText
  >>^ set_domain
 
--- TODO make realisation getting work
 getActant :: ArrowXml a => a XmlTree (Endo Lexie)
 getActant =
-     (getActantNameEx &&& arr id)
- >>^ (\((name,ex),tr) -> add_actant $ Actant name ex 
-                                    $ runLA (getActantReal name) tr)
+     ( getActantNameEx <+> getActantReal )
+  >. id
+ >>> isA (not . null)
+ >>^ foldMap add_actant
 
-getActantNameEx :: ArrowXml a => a XmlTree (String,String)
+getActantNameEx :: ArrowXml a => a XmlTree Actant
 getActantNameEx =
      isElem >>> hasName "structure-actancielle"
   /> isElem >>> hasName "role"
@@ -247,15 +256,20 @@ getActantNameEx =
       /> isText >>> getText
        )
      )
+ >>^ \(name,example) -> Actant name example []
 
-getActantReal :: ArrowXml a => String -> a XmlTree LexieId
-getActantReal act =
+getActantReal :: ArrowXml a => a XmlTree Actant
+getActantReal =
      isElem >>> hasName "realisations"
   /> isElem >>> hasName "role"
- >>> hasAttrValue "nom" (== act)
-  /> isElem >>> hasName "realisation"
- >>>   ( getAttrValue "identificateur"
-     &&& getAttrValue "numero-acception" )
+ >>> ( getAttrValue "nom"
+       &&&
+       ( getChildren >>> isElem >>> hasName "realisation"
+     >>> ( getAttrValue "identificateur"
+       &&& getAttrValue "numero-acception" )
+       )
+     )
+ >>^ \(name,iden) -> Actant name "" [iden]
 
 getSynonym :: ArrowXml a => a XmlTree (Endo Lexie)
 getSynonym =
