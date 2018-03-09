@@ -19,7 +19,8 @@ executable ling
                      , array, containers, transformers, directory
                      , diagrams, diagrams-contrib, diagrams-core
                      , diagrams-lib, diagrams-solve, diagrams-svg
-                     , diagrams-cairo, hxt, text
+                     , diagrams-cairo, diagrams-graphviz, hxt, text
+                     , graphviz, fgl
   ghc-options:         -Wall
   default-language:    Haskell2010
 

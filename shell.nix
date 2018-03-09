@@ -6,8 +6,8 @@ let
 
   f = { mkDerivation, array, base, containers, diagrams
       , diagrams-cairo, diagrams-contrib, diagrams-core, diagrams-lib
-      , diagrams-solve, diagrams-svg, hxt
-      , stdenv, transformers, directory, text
+      , diagrams-solve, diagrams-svg, hxt, diagrams-graphviz
+      , graphviz, stdenv, transformers, directory, text, fgl
       }:
       mkDerivation {
         pname = "ling";
@@ -18,10 +18,10 @@ let
         executableHaskellDepends = [
           array base containers diagrams diagrams-cairo diagrams-contrib
           diagrams-core diagrams-lib diagrams-solve diagrams-svg hxt
-          transformers directory text
+          diagrams-graphviz graphviz transformers directory text fgl
         ];
         buildDepends = with pkgs; [
-          cabal-install
+          cabal-install graphviz
         ];
         license = stdenv.lib.licenses.mit;
       };
