@@ -8,7 +8,7 @@ let
       , diagrams-cairo, diagrams-contrib, diagrams-core, diagrams-lib
       , diagrams-solve, diagrams-svg, hxt, diagrams-graphviz
       , graphviz, stdenv, transformers, directory, text, fgl
-      , linear, dynamic-plot
+      , linear
       }:
       mkDerivation {
         pname = "ling";
@@ -20,7 +20,7 @@ let
           array base containers diagrams diagrams-cairo diagrams-contrib
           diagrams-core diagrams-lib diagrams-solve diagrams-svg hxt
           diagrams-graphviz graphviz transformers directory text fgl
-          linear dynamic-plot
+          linear
         ];
         buildDepends = with pkgs; [
           cabal-install graphviz

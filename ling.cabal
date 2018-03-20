@@ -13,14 +13,14 @@ cabal-version:       >=1.10
 
 executable ling
   main-is:             Main.hs
-  other-module:        DicoXml
+  other-module:        DicoXml, Drawing
   hs-source-dirs:      src/
   build-depends:       base >= 4.9 && < 4.10
                      , array, containers, transformers, directory
                      , diagrams, diagrams-contrib, diagrams-core
                      , diagrams-lib, diagrams-solve, diagrams-svg
                      , diagrams-cairo, diagrams-graphviz, hxt, text
-                     , graphviz, fgl, linear, dynamic-plot
+                     , graphviz, fgl, linear
   ghc-options:         -Wall
   default-language:    Haskell2010
 
