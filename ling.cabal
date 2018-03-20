@@ -20,7 +20,7 @@ executable ling
                      , diagrams, diagrams-contrib, diagrams-core
                      , diagrams-lib, diagrams-solve, diagrams-svg
                      , diagrams-cairo, diagrams-graphviz, hxt, text
-                     , graphviz, fgl
+                     , graphviz, fgl, linear, dynamic-plot
   ghc-options:         -Wall
   default-language:    Haskell2010
 
