@@ -5,6 +5,7 @@
 module Main where
 
 import DicoXml
+import DicoFrames
 import Drawing
 
 main :: IO ()
