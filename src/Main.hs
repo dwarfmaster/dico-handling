@@ -7,6 +7,7 @@ module Main where
 import DicoXml
 import DicoFrames
 import Drawing
+import FCG
 
 main :: IO ()
 main = putStrLn "Hello, world"

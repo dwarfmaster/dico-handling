@@ -13,7 +13,7 @@ cabal-version:       >=1.10
 
 executable ling
   main-is:             Main.hs
-  other-module:        DicoXml, Drawing, DicoFrames
+  other-module:        DicoXml, Drawing, DicoFrames, FCG
   hs-source-dirs:      src/
   build-depends:       base >= 4.9 && < 4.10
                      , array, containers, transformers, directory
