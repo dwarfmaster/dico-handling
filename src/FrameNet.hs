@@ -1,11 +1,19 @@
 
-module FrameNet where
+module FrameNet ( CoreType(..), FE(..), RelType(..), Frame(..)
+                , LexUnit(..), FrameRelationType(..)
+                , FEBinding(..), FrameRelation(..), Dictionnary(..)
+                , framenetDictionnary
+                ) where
 
 import           System.Directory
 import           Text.XML.HXT.Core
 import           Data.Char         (toLower)
 import           Data.Map          (Map)
 import qualified Data.Map          as M
+import qualified Text.Read         as TR
+import qualified Data.Maybe        as Mb
+import           Data.Monoid
+import           Control.Monad     ((>=>))
 
 data CoreType = Core | ExtraThematic | CoreUnexpressed | Peripheral
               deriving (Show,Eq,Ord)
@@ -124,4 +132,126 @@ data Dictionnary = Dico { dico_frames :: Map Int Frame
                         , dico_rels   :: Map RelId FrameRelation
                         }
                         deriving (Show)
+
+framenetDictionnary :: FilePath -> IO Dictionnary
+framenetDictionnary path = (runX >=> unlist) $
+     ( (constA (path <> "/frame/") >>> parseFrames >. buildDico)
+   &&& (constA (path <> "/frRelation.xml") >>> parseFRs >. buildFRDico)
+     )
+ >>^ uncurry Dico
+  where unlist []  = fail "No dictionnary found"
+        unlist [h] = return h
+        unlist _   = fail "More than one dictionnary found"
+
+buildDico :: [Frame] -> Map Int Frame
+buildDico frs = M.fromList $ map (\fr -> (frame_id fr, fr)) frs
+
+parseFrames :: IOSLA (XIOState ()) FilePath Frame
+parseFrames =
+     ( (arr id) &&& (arrIO listDirectory >>> unlistA) )
+ >>> arr (uncurry (<>))
+ >>> parseFrameFrom
+
+parseFrameFrom :: IOSLA (XIOState ()) FilePath Frame
+parseFrameFrom = readFromDocument [ withValidate no ] >>> parseFrame
+
+readA :: (ArrowList a, Read b) => a String b
+readA = arr TR.readMaybe >>> unmaybeA
+
+unmaybeA :: ArrowList a => a (Maybe b) b
+unmaybeA = arr Mb.maybeToList >>> unlistA
+
+parseFrame :: ArrowXml a => a XmlTree Frame
+parseFrame = deep $
+     isElem >>> hasName "frame"
+ >>> ( (getAttrValue "name" &&& (getAttrValue "ID" >>> readA))
+   &&& ((getChildren >>> parseFE ) >. id)
+   &&& ((getChildren >>> parseRel) >. id)
+   &&& ((getChildren >>> parseLU ) >. id)
+     )
+ >>^ \((name,fid), (fes, (rels, lus)))
+        -> Frame { frame_name = name
+                 , frame_id   = fid
+                 , frame_fes  = fes
+                 , frame_rels = rels
+                 , frame_lus  = lus
+                 }
+
+parseFE :: ArrowXml a => a XmlTree FE
+parseFE =
+     isElem >>> hasName "FE"
+ >>> ( (getAttrValue "coreType" >>> arr readCT >>> unmaybeA)
+   &&& (getAttrValue "name")
+   &&& (getAttrValue "ID" >>> readA)
+   &&& ( (getChildren >>> isElem >>> hasName "semType" >>> getAttrValue "name")
+      >. Mb.listToMaybe
+       )
+     )
+ >>^ \(ct, (name, (fid, semt))) -> FE { fe_name     = name
+                                      , fe_id       = fid
+                                      , fe_coreType = ct
+                                      , fe_semType  = semt
+                                      }
+
+parseRel :: ArrowXml a => a XmlTree (RelType,Int)
+parseRel =
+     isElem >>> hasName "frameRelations"
+ >>> ( (getAttrValue "type" >>> arr readRT >>> unmaybeA)
+   &&& (getChildren >>> isElem >>> hasName "relatedFrame"
+                    >>> getAttrValue "ID" >>> readA
+       )
+     )
+
+parseLU :: ArrowXml a => a XmlTree LexUnit
+parseLU =
+     isElem >>> hasName "lexUnit"
+ >>> ( (getAttrValue "name")
+   &&& (getAttrValue "ID" >>> readA)
+   &&& (getChildren >>> isElem >>> hasName "lexeme"
+                    >>> getAttrValue "name"
+       )
+     )
+ >>^ \(name, (lid, lexm)) -> LU { lu_name = name
+                                , lu_id   = lid
+                                , lu_lex  = lexm
+                                }
+
+buildFRDico :: [FrameRelation] -> Map RelId FrameRelation
+buildFRDico frs = M.fromList
+                    $ map (\fr -> ((fr_type fr, fr_subid fr, fr_superid fr), fr))
+                          frs
+
+parseFRs :: IOSLA (XIOState ()) FilePath FrameRelation
+parseFRs = readFromDocument [withValidate no] >>> parseFrameRelation
+ 
+parseFrameRelation :: ArrowXml a => a XmlTree FrameRelation
+parseFrameRelation = deep $
+     isElem >>> hasName "frameRelationType"
+ >>> ( (getAttrValue "name" >>> arr readFRT >>> unmaybeA)
+   &&& (getChildren >>> isElem >>> hasName "frameRelation"
+                    >>> ( (getAttrValue "supID" >>> readA)
+                      &&& (getAttrValue "subID" >>> readA)
+                      &&& (getChildren >>> parseFEB >. id)
+                        )
+       )
+     )
+ >>^ \(rt,(supid,(subid,febs))) -> FR { fr_type     = rt
+                                      , fr_superid  = supid
+                                      , fr_subid    = subid
+                                      , fr_bindings = febs
+                                      }
+
+parseFEB :: ArrowXml a => a XmlTree FEBinding
+parseFEB =
+     isElem >>> hasName "FERelation"
+ >>> ( (getAttrValue "subID" >>> readA)
+   &&& (getAttrValue "subFEName")
+   &&& (getAttrValue "supID" >>> readA)
+   &&& (getAttrValue "supFEName")
+     )
+ >>^ \(subid, (subname, (supid, supname))) -> FEB { feb_subid   = subid
+                                                  , feb_subname = subname
+                                                  , feb_supid   = supid
+                                                  , feb_supname = supname
+                                                  }
 
