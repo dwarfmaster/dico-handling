@@ -3,6 +3,7 @@ module FrameNet ( CoreType(..), FE(..), RelType(..), Frame(..)
                 , LexUnit(..), FrameRelationType(..)
                 , FEBinding(..), FrameRelation(..), Dictionnary(..)
                 , framenetDictionnary
+                , lookupFrame, lookupRel, lookupRelId
                 ) where
 
 import           System.Directory
@@ -132,6 +133,21 @@ data Dictionnary = Dico { dico_frames :: Map Int Frame
                         , dico_rels   :: Map RelId FrameRelation
                         }
                         deriving (Show)
+
+unmaybeM :: Monad m => String -> Maybe a -> m a
+unmaybeM msg Nothing  = fail msg
+unmaybeM _   (Just x) = return x
+
+lookupFrame :: Monad m => Dictionnary -> Int -> m Frame
+lookupFrame (Dico frs _) fid = unmaybeM ("No frame with id " <> show fid)
+                                       $ M.lookup fid frs
+
+lookupRelId :: Monad m => Dictionnary -> RelId -> m FrameRelation
+lookupRelId (Dico _ rls) rid = unmaybeM ("No relation with id " <> show rid)
+                                       $ M.lookup rid rls
+
+lookupRel :: Monad m => Dictionnary -> Int -> RelType -> Int -> m FrameRelation
+lookupRel dico sub rel sup = lookupRelId dico $ mkRelId rel sub sup
 
 framenetDictionnary :: FilePath -> IO Dictionnary
 framenetDictionnary path = (runX >=> unlist) $
