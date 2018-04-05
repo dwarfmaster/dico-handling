@@ -7,8 +7,13 @@ module Main where
 import DicoXml
 import DicoFrames
 import Drawing
+import FrameNet
+import FCG
 import GrammarGeneration
 
+framenetpath = "/home/luc/school/ens/annee2/s2/code/framenet/fndata-1.6/"
+out          = "grammar.lisp"
+
 main :: IO ()
-main = putStrLn "Hello, world"
+main = framenetToFCG framenetpath out
 
