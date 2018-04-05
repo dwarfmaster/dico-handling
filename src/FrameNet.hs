@@ -211,7 +211,7 @@ parseFE =
 
 parseRel :: ArrowXml a => a XmlTree (RelType,Int)
 parseRel =
-     isElem >>> hasName "frameRelations"
+     isElem >>> hasName "frameRelation"
  >>> ( (getAttrValue "type" >>> arr readRT >>> unmaybeA)
    &&& (getChildren >>> isElem >>> hasName "relatedFrame"
                     >>> getAttrValue "ID" >>> readA
@@ -247,7 +247,7 @@ parseFrameRelation = deep $
    &&& (getChildren >>> isElem >>> hasName "frameRelation"
                     >>> ( (getAttrValue "supID" >>> readA)
                       &&& (getAttrValue "subID" >>> readA)
-                      &&& (getChildren >>> parseFEB >. id)
+                      &&& ((getChildren >>> parseFEB) >. id)
                         )
        )
      )
@@ -263,7 +263,7 @@ parseFEB =
  >>> ( (getAttrValue "subID" >>> readA)
    &&& (getAttrValue "subFEName")
    &&& (getAttrValue "supID" >>> readA)
-   &&& (getAttrValue "supFEName")
+   &&& (getAttrValue "superFEName")
      )
  >>^ \(subid, (subname, (supid, supname))) -> FEB { feb_subid   = subid
                                                   , feb_subname = subname
