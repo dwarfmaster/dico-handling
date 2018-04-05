@@ -138,8 +138,8 @@ instance GenLisp Construction where
 data Grammar = Grammar String [Construction]
 instance GenLisp Grammar where
     toLisp (Grammar name cxns) =
-        LispLst (LispVar name)
-              $ map toLisp cxns
+        LispLst "def-fcg-constructions"
+              $ (LispVar name) : map toLisp cxns
 
 predarg :: String -> [AnyLisp]
 predarg = return . AnyLisp . LispVar
