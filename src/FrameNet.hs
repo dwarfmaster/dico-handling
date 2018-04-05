@@ -1,6 +1,6 @@
 
 module FrameNet ( CoreType(..), FE(..), RelType(..), Frame(..)
-                , LexUnit(..), FrameRelationType(..)
+                , LexUnit(..), FrameRelationType(..), RelId
                 , FEBinding(..), FrameRelation(..), Dictionnary(..)
                 , framenetDictionnary
                 , lookupFrame, lookupRel, lookupRelId

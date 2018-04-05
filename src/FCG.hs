@@ -18,7 +18,9 @@ depth (LispLst x l)  = (+) 1 $ max (depth x) $ maximum $ map depth l
 depth (LispQuote l)  = depth l
 depth (LispVar _)    = 0
 
--- TODO pretty print
+print_lisp :: LispExpr -> String
+print_lisp = print_lisp' 0
+
 print_lisp' :: Int -> LispExpr -> String
 print_lisp' sft (LispLst name [])     = "(" <> print_lisp' sft name <> ")"
 print_lisp' sft l@(LispLst name args) = "("
