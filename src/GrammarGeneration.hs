@@ -14,6 +14,7 @@ import           Data.Map            (Map)
 import           Data.List           (union)
 import qualified Data.Set            as S
 import           Control.Monad.State
+import qualified Data.Text.Lazy.IO   as TIO
 
 
 --  ____      _       _   _                 
@@ -193,7 +194,7 @@ loadGrammarFromFramenet :: FilePath -> IO Grammar
 loadGrammarFromFramenet = framenetDictionnary >=> generateGrammar
 
 writeGrammar :: FilePath -> Grammar -> IO ()
-writeGrammar path grammar = writeFile path
+writeGrammar path grammar = TIO.writeFile path
                           $ print_lisp
                           $ toLisp grammar
 

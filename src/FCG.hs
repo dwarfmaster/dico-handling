@@ -4,8 +4,10 @@
 
 module FCG where
 
-import Data.Monoid
-import Data.String
+import           Data.Monoid
+import           Data.String
+import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy         as T
 
 data LispExpr = LispLst   LispExpr [LispExpr]
               | LispQuote LispExpr
@@ -18,21 +20,21 @@ depth (LispLst x l)  = (+) 1 $ max (depth x) $ maximum $ map depth l
 depth (LispQuote l)  = depth l
 depth (LispVar _)    = 0
 
-print_lisp :: LispExpr -> String
-print_lisp = print_lisp' 0
+print_lisp :: LispExpr -> T.Text
+print_lisp = TB.toLazyText . (print_lisp' 0)
 
-print_lisp' :: Int -> LispExpr -> String
+print_lisp' :: Int -> LispExpr -> TB.Builder
 print_lisp' sft (LispLst name [])     = "(" <> print_lisp' sft name <> ")"
 print_lisp' sft l@(LispLst name args) = "("
-                                <> foldl (\acc arg -> acc <> sep <> print_lisp' nsft arg)
+                                <> foldr (\arg acc -> acc <> sep <> print_lisp' nsft arg)
                                          (print_lisp' sft name)
                                          args
                                 <> ")"
  where sep   = if depth l <= 1 then " " else ("\n" <> shift)
-       shift = mconcat $ take sft $ repeat "  "
+       shift = mconcat $ take sft $ repeat ("  " :: TB.Builder)
        nsft  = sft + 1
 print_lisp' sft (LispQuote expr)      = "'" <> print_lisp' sft expr
-print_lisp' _   (LispVar str)         = str
+print_lisp' _   (LispVar str)         = TB.fromString str
 
 class GenLisp a where
     toLisp :: a -> LispExpr
