@@ -1,6 +1,7 @@
 {-# LANGUAGE GADTs              #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE TupleSections      #-}
 
 module FCG where
 
@@ -26,9 +27,11 @@ print_lisp = TB.toLazyText . (print_lisp' 0)
 print_lisp' :: Int -> LispExpr -> TB.Builder
 print_lisp' sft (LispLst name [])     = "(" <> print_lisp' sft name <> ")"
 print_lisp' sft l@(LispLst name args) = "("
-                                <> foldr (\arg acc -> acc <> sep <> print_lisp' nsft arg)
-                                         (print_lisp' sft name)
-                                         args
+                                <> foldr (\(s,arg) acc -> print_lisp' s arg
+                                                       <> sep
+                                                       <> acc)
+                                         ""
+                                         ( (sft,name) : map (nsft,) args )
                                 <> ")"
  where sep   = if depth l <= 1 then " " else ("\n" <> shift)
        shift = mconcat $ take sft $ repeat ("  " :: TB.Builder)
@@ -101,7 +104,7 @@ data Hmeaning = Hmeaning SetOfPredicate
 instance GenLisp Hmeaning where
     toLisp (Hmeaning set) = LispLst (LispVar "HASH")
                                     [ LispVar "meaning"
-                                    , LispLst (toLisp set) []
+                                    , toLisp set
                                     ]
 
 data UnitEntry where
