@@ -80,7 +80,7 @@ instance GenLisp Hform where
                                      , LispLst (LispLst
                                            (LispVar "string")
                                            [ toLisp var
-                                           , LispVar str
+                                           , LispVar $ "\"" <> str <> "\""
                                            ]
                                          ) []
                                      ]
@@ -88,8 +88,8 @@ instance GenLisp Hform where
                                      [ LispVar "form"
                                      , LispLst (LispLst
                                            (LispVar "meets")
-                                           [ LispVar str1
-                                           , LispVar str2
+                                           [ LispVar $ "\"" <> str1 <> "\""
+                                           , LispVar $ "\"" <> str2 <> "\""
                                            ]
                                          ) []
                                      ]
