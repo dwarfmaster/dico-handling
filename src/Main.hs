@@ -13,7 +13,8 @@ import GrammarGeneration
 
 framenetpath = "/home/luc/school/ens/annee2/s2/code/framenet/fndata-1.6/"
 out          = "grammar.lisp"
+pruning      = ["good"]
 
 main :: IO ()
-main = framenetToFCG framenetpath out
+main = prunedFramenetToFCG pruning framenetpath out
 

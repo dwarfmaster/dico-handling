@@ -8,6 +8,7 @@ module GrammarGeneration
        ( generateRelationsScheme, generateLUs
        , generateGrammar, loadGrammarFromFramenet
        , writeGrammar, framenetToFCG
+       , prunedFramenetToFCG
        ) where
 
 import           FCG
@@ -15,11 +16,23 @@ import           FrameNet
 import           Data.Monoid         ((<>))
 import qualified Data.Map            as M
 import           Data.Map            (Map)
-import           Data.List           (union)
+import           Data.List           (union, sortBy, groupBy)
 import qualified Data.Set            as S
 import           Control.Monad.State
 import qualified Data.Text.Lazy.IO   as TIO
 import           Data.Char           (isSpace)
+import           Control.Arrow       (Arrow, (&&&), (>>>), (***))
+
+
+--  _   _ _   _ _     
+-- | | | | |_(_) |___ 
+-- | | | | __| | / __|
+-- | |_| | |_| | \__ \
+--  \___/ \__|_|_|___/
+--                    
+
+delta :: Arrow a => a b c -> a (b,b) (c,c)
+delta f = f *** f
 
 
 --   ____                 _     
@@ -223,6 +236,94 @@ generateFrameLexUnit frame (LU name lid lexeme) =
        uname = unSpace name
 
 
+--  ____                   _             
+-- |  _ \ _ __ _   _ _ __ (_)_ __   __ _ 
+-- | |_) | '__| | | | '_ \| | '_ \ / _` |
+-- |  __/| |  | |_| | | | | | | | | (_| |
+-- |_|   |_|   \__,_|_| |_|_|_| |_|\__, |
+--                                 |___/ 
+
+data DicoNode = NdLex LexUnit [Frame] | NdFrame Frame
+data DicoGraph = DG { unDG :: Map Int DicoNode }
+newtype DGId = DGId { unDGId :: Int }
+             deriving (Show,Eq,Ord)
+idFrame :: Int -> DGId
+idFrame idt = DGId $ 2 * idt
+idLex :: Int -> DGId
+idLex idt = DGId $ 2 * idt + 1
+
+follow_rels :: [RelType]
+follow_rels = [ InheritsFrom
+              , PerspectiveOn
+              , Uses
+              , SubframeOf
+              , IsPrecededBy
+              , IsInchoativeOf
+              , IsCausativeOf
+              ]
+instance Graph DicoGraph DGId DicoNode where
+    glookup gr idt = M.lookup (unDGId idt) (unDG gr)
+    gnodes = (fmap DGId) . M.keys . unDG
+    gnexts  _ (NdLex _ frs) = fmap (idFrame . frame_id) frs
+    gnexts  _ (NdFrame (Frame _ _ _ rels lus)) =
+        fmap (idFrame . snd) (filter ((`elem` follow_rels) . fst) rels)
+     <> fmap (idLex . lu_id) lus
+
+mkDicoGraph :: Dictionnary -> DicoGraph
+mkDicoGraph dico = DG $ M.union frame_graph lus_graph
+ where frame_graph :: Map Int DicoNode
+       frame_graph = M.fromList
+                   $ fmap (((*2) . frame_id) &&& NdFrame)
+                   $ M.elems
+                   $ dico_frames dico
+       lus_graph :: Map Int DicoNode
+       lus_graph = M.fromList
+                 $ fmap (\((lu,fr):tl) -> (1+2*lu_id lu,) $ NdLex lu $ fr : map snd tl)
+                 $ groupBy (curry $ select >>> uncurry (==))
+                 $ sortBy (curry $ select >>> uncurry compare)
+                 $ mconcat
+                 $ fmap (\fr -> fmap (,fr) $ frame_lus fr)
+                 $ M.elems
+                 $ dico_frames dico
+       select :: ((LexUnit,a), (LexUnit,a)) -> (Int,Int)
+       select = delta $ lu_id . fst
+
+newtype OdF = OdF { fromOdF :: Frame }
+instance Eq OdF where
+    (==) = curry $ delta (frame_id . fromOdF) >>> uncurry (==)
+instance Ord OdF where
+    compare = curry $ delta (frame_id . fromOdF) >>> uncurry compare
+
+lexemesFrames :: Dictionnary -> [String] -> DicoGraph -> [Int]
+lexemesFrames dico lexemes graph = concatMap ( (fmap $ frame_id . fromOdF)
+                                             . mconcat
+                                             . S.elems)
+                                             ccs
+ where ccs :: [S.Set [OdF]]
+       ccs = connectedFrom graph (const $ toFrames)
+                         $ fmap (idLex . lu_id)
+                         $ filter ((`elem` lexemes) . lu_lex)
+                         $ foldMap frame_lus
+                         $ dico_frames dico
+       toFrames :: DicoNode -> [OdF]
+       toFrames (NdLex _ _) = []
+       toFrames (NdFrame f) = [OdF f]
+
+prune :: [String] -> Dictionnary -> Dictionnary
+prune lexemes dico = Dico dframes drels
+ where frames  = lexemesFrames dico lexemes $ mkDicoGraph dico
+       dframes = flip M.mapMaybe (dico_frames dico)
+                    $ \fr -> if frame_id fr `elem` frames
+                               then Just $ fr { frame_lus
+                                                  = filter ((`elem` lexemes) . lu_lex)
+                                                         $ frame_lus fr
+                                              }
+                               else Nothing
+       drels   = flip M.filter (dico_rels dico)
+                    $ \rel -> fr_superid rel `elem` frames
+                           && fr_subid   rel `elem` frames
+
+
 --   ____                           _ 
 --  / ___| ___ _ __   ___ _ __ __ _| |
 -- | |  _ / _ \ '_ \ / _ \ '__/ _` | |
@@ -248,4 +349,11 @@ writeGrammar path grammar = TIO.writeFile path
 framenetToFCG :: FilePath -> FilePath -> IO ()
 framenetToFCG framenetdir out = loadGrammarFromFramenet framenetdir
                             >>= writeGrammar out
+
+prunedFramenetToFCG :: [String] -> FilePath -> FilePath -> IO ()
+prunedFramenetToFCG lexemes framenetdir out = do
+    dico'    <- framenetDictionnary framenetdir
+    let dico = prune lexemes dico'
+    grammar  <- generateGrammar dico
+    writeGrammar out grammar
 
