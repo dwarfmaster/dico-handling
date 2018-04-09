@@ -1,4 +1,8 @@
-{-# LANGUAGE TupleSections #-}
+{-# LANGUAGE TupleSections          #-}
+{-# LANGUAGE ScopedTypeVariables    #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances      #-}
 
 module GrammarGeneration 
        ( generateRelationsScheme, generateLUs
@@ -15,7 +19,67 @@ import           Data.List           (union)
 import qualified Data.Set            as S
 import           Control.Monad.State
 import qualified Data.Text.Lazy.IO   as TIO
+import           Data.Char           (isSpace)
 
+
+--   ____                 _     
+--  / ___|_ __ __ _ _ __ | |__  
+-- | |  _| '__/ _` | '_ \| '_ \ 
+-- | |_| | | | (_| | |_) | | | |
+--  \____|_|  \__,_| .__/|_| |_|
+--                 |_|          
+
+class (Ord id, Show id) => Graph g id node | g -> id node where
+    glookup :: g -> id   -> Maybe node
+    gnexts  :: g -> node -> [id]
+    gnodes  :: g -> [id]
+
+dfs :: forall g id node m. (Graph g id node, Monoid m)
+    => g
+    -> (id -> node -> m)
+    -> id
+    -> State (S.Set id, m) ()
+dfs graph f nodeid = do
+    sn <- seen nodeid
+    if sn
+      then return ()
+      else case glookup graph nodeid of
+        Nothing  -> fail $ "Node " <> show nodeid <> " not in graph"
+        Just val -> do
+            insert val nodeid
+            sequence_ $ fmap (dfs graph f) $ gnexts graph val
+ where seen :: id -> State (S.Set id, m) Bool
+       seen nd = get >>= \s -> return $ S.member nd $ fst s
+       insert :: node -> id -> State (S.Set id, m) ()
+       insert label nd = do
+           (sns, cc) <- get
+           put (S.insert nd sns, (f nd label) <> cc)
+
+connectedFrom :: forall g id node a
+               . (Graph g id node, Ord a)
+              => g
+              -> (id -> node -> a)
+              -> [id]
+              -> [S.Set a]
+connectedFrom graph f start = filter (not . S.null)
+                            $ fst
+                            $ (flip runState) (S.empty, S.empty)
+                            $ sequence
+                            $ fmap runDfs start
+ where makeMonoid :: id -> node -> S.Set a
+       makeMonoid ident = S.singleton . (f ident)
+       runDfs :: id -> State (S.Set id, S.Set a) (S.Set a)
+       runDfs ident = do
+           dfs graph makeMonoid ident
+           (sns, cc) <- get
+           put (sns, S.empty)
+           return cc
+
+connected :: (Graph g id node, Ord a)
+          => g
+          -> (id -> node -> a)
+          -> [S.Set a]
+connected graph f = connectedFrom graph f $ gnodes graph
 
 --  ____      _       _   _                 
 -- |  _ \ ___| | __ _| |_(_) ___  _ __  ___ 
@@ -44,13 +108,20 @@ chooseBind dico rid = do
      FRT_PerspectiveOn -> generateBind "perspective" dico rid >>= (return . (:[]))
      _                 -> return []
 
+unSpace :: String -> String
+unSpace = map $ \c ->      if isSpace c then '_'
+                      else if c == '('  then '-'
+                      else if c == ')'  then '-'
+                      else if c == '\'' then '-'
+                      else                   c
+
 generateBind :: Monad m => String -> Dictionnary -> RelId -> m Construction
 generateBind bind_name dico rid = do
     (FR _ supid subid bindings) <- lookupRelId dico rid
     supFrame <- lookupFrame dico supid
     subFrame <- lookupFrame dico subid
-    let supName = frame_name supFrame
-    let subName = frame_name subFrame
+    let supName = unSpace $ frame_name supFrame
+    let subName = unSpace $ frame_name subFrame
     let supFRVar = Var $ "fr-" <> supName
     let subFRVar = Var $ "fr-" <> subName
     let unitName = Var $ subName <> "-unit"
@@ -81,9 +152,16 @@ generateBind bind_name dico rid = do
                    ]
         in [ LUnit unitName [ lock ] [ lock ] ])
 
+newtype BindGraph = BG { unBG :: Map Int ((String,Bool),[Int]) }
+instance Graph BindGraph Int ((String,Bool),[Int]) where
+    glookup gr = flip M.lookup (unBG gr)
+    gnexts     = const $ snd
+    gnodes     = M.keys . unBG
+
 -- Build a graph representing the links between the FEs
-buildGraph :: [FEBinding] -> Map Int ((String,Bool),[Int])
-buildGraph bindings = foldl (\mp (key,value)
+buildGraph :: [FEBinding] -> BindGraph
+buildGraph bindings = BG
+                    $ foldl (\mp (key,value)
                                  -> M.insertWith (munion) key value mp)
                             M.empty
                           $ mconcat
@@ -104,44 +182,12 @@ bind bindings = mconcat
                             in fmap (\((s,b),i) -> (i,s,b,v))
                                     l
                      ) ccs
- where ccs  = connected_components bindings
+ where ccs = fmap S.elems
+           $ connected (buildGraph bindings)
+           $ \ident (value,_) -> (value,ident)
        mkVar :: [((String,Bool),Int)] -> Var
        mkVar (((name,_),_):_) = Var $ "fe-" <> name
        mkVar []               = error "Empty connected component"
-
-connected_components :: [FEBinding] -> [[((String,Bool),Int)]]
-connected_components bindings = fmap S.elems
-                              $ filter (not . S.null)
-                              $ fst
-                              $ runState (sequence $ fmap (rundfs graph) nodes)
-                                         (S.empty, S.empty)
- where graph = buildGraph bindings
-       nodes = M.keys graph
-       rundfs :: Ord a => Map Int (a,[Int]) -> Int -> State (S.Set Int, S.Set (a,Int))
-                                                            (S.Set (a,Int))
-       rundfs gr node = do
-           dfs gr node
-           (sns, ccs) <- get
-           put (sns, S.empty)
-           return ccs
-
-dfs :: Ord a => Map Int (a,[Int]) -> Int -> State (S.Set Int, S.Set (a,Int)) ()
-dfs graph node = do
-    sn  <- seen node
-    if sn
-      then return ()
-      else case M.lookup node graph of
-        Nothing            -> fail $ "Node " <> show node <> " not in graph"
-        Just (label,nexts) -> do
-            insert label node
-            sequence_ $ fmap (dfs graph) nexts
- where seen :: Int -> State (S.Set Int, S.Set (a,Int)) Bool
-       seen nd = get >>= \s -> return $ S.member nd $ fst s
-       insert :: Ord a => a -> Int -> State (S.Set Int, S.Set (a,Int)) ()
-       insert label nd = do
-           (sns, cc) <- get
-           put (S.insert nd sns, S.insert (label,nd) cc)
-
 
 --  _              _           _   _   _       _ _       
 -- | |    _____  _(_) ___ __ _| | | | | |_ __ (_) |_ ___ 
@@ -161,7 +207,7 @@ generateLUs (Dico frames _) = return
 generateFrameLexUnit :: String -> LexUnit -> Construction
 generateFrameLexUnit frame (LU name lid lexeme) =
     Construction
-        (name <> "-" <> show lid <> "-cxn")
+        (uname <> "-" <> show lid <> "-cxn")
         [ TUnit unit [] ]
         [ LUnit unit
           [ Hashm $ Hmeaning $ SetOfPred [
@@ -173,7 +219,8 @@ generateFrameLexUnit frame (LU name lid lexeme) =
           ]
           [ Hashf $ Hstring unit lexeme ]
         ]
- where unit = Var $ name <> "-" <> show lid <> "-unit"
+ where unit  = Var $ uname <> "-" <> show lid <> "-unit"
+       uname = unSpace name
 
 
 --   ____                           _ 
