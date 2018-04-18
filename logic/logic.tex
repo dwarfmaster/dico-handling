@@ -1,0 +1,90 @@
+\documentclass[]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[francais]{babel}
+%\usepackage[left=1cm, right=1cm, bottom=1cm, top=1cm]{geometry}
+\usepackage{fixltx2e}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{mathrsfs}
+\usepackage{stmaryrd}
+\usepackage{bbm}
+\usepackage[dvipsnames]{xcolor}
+%\usetikzlibrary{shapes.geometric,calc}
+\usepackage{algorithm2e}
+\usepackage{multicol}
+\usepackage{tabularx}
+\usepackage{listings}
+\usepackage{ebproof}
+\newcommand{\seg}[2]{\llbracket #1, #2 \rrbracket}
+
+\MakeRobust{\overrightarrow}
+
+\definecolor{mygreen}{rgb}{0,0.6,0}
+\definecolor{mygray}{rgb}{0.5,0.5,0.5}
+\definecolor{mymauve}{rgb}{0.58,0,0.82}
+
+\newcommand{\vc}[1]{\overrightarrow{#1}}
+\newcommand{\A}{\mathscr{A}}
+\newcommand{\F}{\mathscr{F}}
+\newcommand{\B}{\mathscr{B}}
+\newcommand{\C}{\mathscr{C}}
+\newcommand{\G}{\mathscr{G}}
+\renewcommand{\L}{\mathscr{L}}
+\newcommand{\V}{\mathscr{V}}
+\newcommand{\T}{\mathscr{T}}
+\newcommand{\Q}{\mathscr{Q}}
+\renewcommand{\H}{\mathscr{H}}
+\renewcommand{\P}{\mathscr{P}}
+\newcommand{\Er}{\mathscr{E}}
+\newcommand{\parts}{\mathscr{P}}
+\newcommand{\ntoi}{{n\rightarrow\infty}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\Z}{\mathbb{Z}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\1}{\mathbbm{1}}
+\newcommand{\0}{\mathbbm{0}}
+\renewcommand{\phi}{\varphi}
+
+\newtheorem{theo}{Theorem}
+\newtheorem{lem}{Lemma}
+\newtheorem{prop}{Proposition}
+\newtheorem{defi}{Definition}
+\newtheorem{fact}{Fact}
+\newtheorem{ex}{Example}
+
+\newcommand{\Prop}{\text{Prop}}
+\newcommand{\mfill}{\hspace*{\fill}}
+
+\begin{document}
+\title{Logic system for FCG}
+\author{Luc Chabassier}
+\maketitle
+
+\[\text{LE}\left\{
+\quad\begin{prooftree}
+    \hypo{M : \sigma}
+    \infer1[R]{M =_\sigma M : \Prop}
+\end{prooftree}
+\qquad\begin{prooftree}
+    \hypo{ N =_\sigma M : \Prop }
+    \infer1[S]{M =_\sigma N : \Prop}
+\end{prooftree}
+\qquad\begin{prooftree}
+    \hypo{M=_\sigma N : \Prop}
+    \hypo{N=_\sigma O : \Prop}
+    \infer2[T]{M=_\sigma O : \Prop}
+\end{prooftree}
+%\\
+%&\begin{prooftree}
+%    \hypo{M=_\sigma N:\Prop\quad C[N]=_\sigma O:\Lambda}
+%    \infer1[IL]{C[M]=_\sigma O : \Lambda}
+%\end{prooftree}
+\right.
+\]
+
+\end{document}
