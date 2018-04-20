@@ -104,20 +104,19 @@ in FCG. To do that, we must first define what a lisp term is.
 
 \begin{defi}{Lisp term}
     \[\begin{array}{rcll}
-        t & = & ?v    & \text{variable} \\
-          & | & s     & \text{symbol}   \\
-          & | & t . t & \text{cons}     \\
-          & | & ()    & \text{nil}      \\
-          & | & \{\}  & \emptyset       \\
+        t & = & ?v       & \text{variable} \\
+          & | & s        & \text{symbol}   \\
+          & | & t . t    & \text{cons}     \\
+          & | & ()_{ann} & \text{nil}      \\
     \end{array}\]
+
+    Where $a$ is a type annotation that tells us how the list should be
+    interpreted.
 \end{defi}
 
 Let's write $LT$ the set of lisp terms defined according to the above
-definition. Notice how we distinguish sets and lists syntactically.
-In lisp the difference is purely semantic, but it allows us to avoid
-having to carry type annotations with our terms. To make it more
-readable, we write $a.b.\cdots.() = (a\ b\ \cdots)$ and
-$a.b.\cdots.\{\} = \{a\ b\ \cdots\}$.
+definition. To make it more readable, we write
+$a.b.\cdots.()_{ann} = (a\ b\ \cdots)_{ann}$.
 
 We write the set of all lisp terms $\mathbb{L}$. Since they play a specific
 role, we also need a specific set for variables $\mathbb{V}$. We assume we have
@@ -125,12 +124,12 @@ a total order $\leq_\mathbb{V}$ on $\mathbb{V}$.
 
 \begin{ex}{Some lisp terms}\begin{itemize}
     \item The list with the symbols $x$, $y$ and the variable $v$~:
-        $x.y.?v.() = (x\ y\ ?v)$
+        $x.y.?v.() = (x\ y\ ?v)_{list}$
     \item Another list, with longer symbols~: $(print ?x)$
-    \item A set with some symbols and variables~: $\{x\ y\ x\ ?v\ x\}$. Notice
+    \item A set with some symbols and variables~: $(x\ y\ x\ ?v\ x)_{set}$. Notice
         how the set can have more than one occurrence of a symbol or variable, indeed
         it is just a list with an annotation saying it should be treated as a set.
-    \item A more complicated term~: $(return\ ((print\ \{a\ b\ ?v\})\ ?u))$
+    \item A more complicated term~: $(return\ ((print\ (a\ b\ ?v)_{set}\ ?u)_{fun})_{fun}$
 \end{itemize}\end{ex}
 
 \subsection{Substitution}
@@ -160,8 +159,7 @@ term. We must then define the application of a substitution.
                       \end{array}\right. \\
                 & | & s \\
                 & | & t\theta.t\theta \\
-                & | & () \\
-                & | & \{\} \\
+                & | & ()_{ann} \\
     \end{array}\]
 \end{defi}
 
