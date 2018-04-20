@@ -2,7 +2,7 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[francais]{babel}
+\usepackage[english]{babel}
 %\usepackage[left=1cm, right=1cm, bottom=1cm, top=1cm]{geometry}
 \usepackage{fixltx2e}
 \usepackage{fancyhdr}
@@ -12,8 +12,9 @@
 \usepackage{mathrsfs}
 \usepackage{stmaryrd}
 \usepackage{bbm}
-\usepackage[dvipsnames]{xcolor}
-%\usetikzlibrary{shapes.geometric,calc}
+\usepackage[dvipsnames, x11names, rgb]{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{snakes,arrows,shapes}
 \usepackage{algorithm2e}
 \usepackage{multicol}
 \usepackage{tabularx}
@@ -58,6 +59,7 @@
 \newtheorem{defi}{Definition}
 \newtheorem{fact}{Fact}
 \newtheorem{ex}{Example}
+\newenvironment{prf}{\paragraph{Proof}}{\hfill$\square$}
 
 \newcommand{\Prop}{\text{Prop}}
 \newcommand{\Sym}{\text{Sym}}
@@ -65,6 +67,7 @@
 \newcommand{\Seq}{\text{Seq}}
 \newcommand{\Map}{\text{Map}}
 \newcommand{\Set}{\text{Set}}
+\newcommand{\dom}{\text{dom}}
 \newcommand{\sset}{{\Set_\sigma}}
 \newcommand{\mfill}{\hspace*{\fill}}
 \newcommand{\proof}[1]{{\scantokens{\begin{prooftree}#1\end{prooftree}}}}
@@ -76,6 +79,8 @@
 \title{Optimizing Fluid Construction Grammar}
 \author{Luc Chabassier}
 \maketitle
+
+\tableofcontents
 
 \section{Introduction}
 
@@ -95,6 +100,8 @@ exhaustively first when looking for a derivation. This idea is inspired by
 In this section we will try to formalize how the matching (unification) is done
 in FCG. To do that, we must first define what a lisp term is.
 
+\subsection{Lisp Terms}
+
 \begin{defi}{Lisp term}
     \[\begin{array}{rcll}
         t & = & ?v    & \text{variable} \\
@@ -112,6 +119,10 @@ having to carry type annotations with our terms. To make it more
 readable, we write $a.b.\cdots.() = (a\ b\ \cdots)$ and
 $a.b.\cdots.\{\} = \{a\ b\ \cdots\}$.
 
+We write the set of all lisp terms $\mathbb{L}$. Since they play a specific
+role, we also need a specific set for variables $\mathbb{V}$. We assume we have
+a total order $\leq_\mathbb{V}$ on $\mathbb{V}$.
+
 \begin{ex}{Some lisp terms}\begin{itemize}
     \item The list with the symbols $x$, $y$ and the variable $v$~:
         $x.y.?v.() = (x\ y\ ?v)$
@@ -122,32 +133,227 @@ $a.b.\cdots.\{\} = \{a\ b\ \cdots\}$.
     \item A more complicated term~: $(return\ ((print\ \{a\ b\ ?v\})\ ?u))$
 \end{itemize}\end{ex}
 
+\subsection{Substitution}
+
 What an unification algorithm does is to find a \emph{substitution} (or matching in
 FCG terms) to make two terms equals. To be able to express it, we must thus define
 what a substitution is, and them how is equality computed.
 
 \begin{defi}{Substitution}
-    A substitution is a partial function $f$ from variables to lisp terms.
+    A substitution is a partial function $\theta$ from variables to lisp terms.
 
-    We note $\text{dom}(f)$ the variables for which it is defined.
+    We note $\text{dom}(\theta)$ the variables for which it is defined.
+
+    We write the set of all substitution $\mathbb{S}$.
+\end{defi}
+
+A substitution itself is only useful if we know how to apply it to any lisp
+term. We must then define the application of a substitution.
+
+\begin{defi}{Application of substitution}
+    We define the application $l\theta$ of the substitution $\theta$ to the
+    lisp term $l$ inductively on the definition of $l$~:
+    \[\begin{array}{rcl}
+        l\theta & = & \left|\begin{array}{ll}
+                          \theta(?v) & \text{if } ?v\in\dom(\theta) \\
+                          ?v         & \text{otherwise}
+                      \end{array}\right. \\
+                & | & s \\
+                & | & t\theta.t\theta \\
+                & | & () \\
+                & | & \{\} \\
+    \end{array}\]
 \end{defi}
 
 But what FCG matching computes is not any substitution but a binding, ie a list
 of pairs, with the first element a variable and the second one a lisp term in which
 the variable does not occur (we assume the matching would have failed in case of
-a circular binding).
+a circular binding). We write the set of all bindings $\mathbb{B}$.
 
 We must now give a way to transform a binding into a substitution (the other way is
 easy if the substitution has a finite domain, just link $?v$ to $f(?v)$ for
-$?v\in\text{dom}(f)$).
+$?v\in\text{dom}(f)$). Let's note this binding $\B(f)$.
 
-\begin{defi}{$\Phi$}
-    If $b$ is a binding, we define $\Phi(b)$ a substitution associated. We define
+\begin{defi}{$\theta$}
+    If $b$ is a binding, we define $\theta(b)$ a substitution associated. We define
     it inductively on the length of $b$.
 
-    If $b$ is the empty list, $\Phi(b)$ is the substitution with empty domain.
-    % TODO
+    If $b$ is the empty list, $\theta(b)$ is the substitution with empty domain.
+
+    If $b$ is the list with head $(u,v)$ where $u,v\in\mathbb{V}$, $v <_\mathbb{V} u$,
+    and tail $tl$, we set $\theta(b) = \theta((v,u) :: tl)$.
+
+    If $b$ is the list with head $(v,t)$ and tail $tl$, we construct $\theta(b)$ by
+    updating $\theta(tl)$. Let $f = \theta(tl)$. If $v\not\in\dom(f)$ and $t\not\in\dom(f)$,
+    we define~:
+    \[\theta(b) : x \mapsto \left\{\begin{array}{ll}
+        t & \text{if } x = v \\
+        t & \text{if } x = t \\
+        f(x) & \text{if } x\in\dom(f) \\
+    \end{array}\right.\]
+
+    Else if $v\not\in\dom(f)$ and $t\in\dom{f}$, we define~:
+    \[\theta(b) : x\mapsto\left\{\begin{array}{ll}
+        f(t) & \text{if } x = v \\
+        f(x) & \text{if } x\in\dom(f) \\
+    \end{array}\right.\]
+
+    Else if $v\in\dom(f)$, and $t\not\in\dom(f)$, we define~:
+    \[\theta(b) : x \mapsto \left\{\begin{array}{ll}
+        t & \text{if } x\in f^{-1}(f(v)) \\
+        t & \text{if } x = t \\
+        f(x) & \text{if } x\in\dom(f) - f^{-1}(f(v)) - \{t\} \\
+    \end{array}\right.\]
+
+    Else if $v\in\dom(f)$, and $t\in\dom(f)$, we define~:
+    \[\theta(b) : x \mapsto \left\{\begin{array}{ll}
+        f(t) & \text{if } x\in f^{-1}(f(v)) \\
+        f(x) & \text{if } x\in\dom(f) - f^{-1}(f(v)) \\
+    \end{array}\right.\]
 \end{defi}
+
+\subsection{Proof of $\theta(b)$}
+
+Now we would like to prove that this definition is correct, in other words that
+$\forall b\in\mathbb{B}. \B(\theta(b)) = b$. But strict syntactical equality is not
+sufficient for comparing bindings. Indeed, bindings are the same up to permutation, but
+even that is too weak. For example, $[(?v, ?u), (?u, t)]$ and $[(?u, ?v), (?v, t)]$
+are semantically the same. We need a stronger definition.
+
+\begin{defi}{Graph associated to a binding}
+    Let $b$ be a binding. We note $\G(b)$ the undirected graph which vertices
+    are all the lisp terms that appears in $b$, and has edges between the terms
+    that are bound by the binding.
+\end{defi}
+
+\begin{ex}{$G([(?v,?u), (?u,t), (?w,t')])$}
+    \newline
+    \begin{center}
+        \input{binding-ex}
+    \end{center}
+\end{ex}
+
+Let's write $\text{CC}(\G)$ to denote the set of connected components of the
+graph $\G$ (as a set of set of nodes).
+
+\begin{defi}{Equivalence of bindings}
+    Two bindings $b_1$ and $b_2$ are equivalent, written $b_1\sim b_2$,
+    if $\text{CC}(\G(b_1)) = \text{CC}(\G(b_2))$.
+\end{defi}
+
+Now that we have the definition of $\theta$ and our effective equality
+for bindings, we can proceed to the main theorem.
+
+\begin{theo}{Congruence of $\theta$}\label{theta-congru}
+    \[\forall b_1,b_2\in\mathbb{B}.
+    \theta(b_1) = \theta(b_2)\iff b_1\sim b_2\]
+\end{theo}
+
+We can't prove it directly, we must first establish a few lemmas.
+
+\begin{lem}\label{image_connected}
+    \[\forall b\in\mathbb{B}. \forall x\in\dom(\theta(b)). \forall t\in\mathbb{L}.
+    \theta(b)(x) = t
+    \implies\exists c\in\text{CC}(\G(b)). x\in c\wedge t\in c\]
+\end{lem}
+
+\begin{prf}
+    Let's proceed by induction on $b\in\mathbb{B}$~:\begin{itemize}
+        \item If $b$ is the empty binding, $\dom(\theta(b)) = \emptyset$ thus the
+            lemma is true.
+        \item If $b$ is the list with head $(v,t)$ and tail $tl$. Let $f = \theta(tl)$.
+            By induction the proposition holds for $f$. Let $x\in\dom(\theta(b))$ and 
+            $t' = \theta(b)(x)$.
+            We must distinguish four subcases~:\begin{itemize}
+                \item If $v\not\in\dom(f)$ and $t\not\in\dom(f)$. If $x = v$ or if
+                    $x = t$ then $t' = t$, thus the proposition holds. Otherwise
+                    $t' = f(x)$ thus by induction they are connected in $\G(tl)$.
+                    Since $\G(tl)$ is a subgraph of $\G(b)$, they are also connected
+                    in it.
+                \item $v\not\in\dom(f)$ and $t\in\dom(f)$. If $x = v$ then $t' = t$ and
+                    the result holds. Otherwise $t' = f(x)$, and the same argument as
+                    above applies.
+                \item $v\in\dom(f)$ and $t\not\in\dom(f)$. If $x = t$ the result
+                    is trivial. If $x\in f^{-1}(f(v))$, we have $t' = t$. And we have
+                    $f(x) = f(v)$, thus $x$ is connected to $f(v)$ by induction. Also
+                    by induction $v$ is connected to $f(v)$. Thus $x$ is connected to
+                    $v$ in $\G(tl)$ thus in $\G(b)$. Since $v$ is connected to $t=t'$,
+                    we can conclude. Otherwise $t' = f(x)$ and the same argument as above
+                    applies.
+                \item $v\in\dom(f)$ and $t\in\dom(f)$. If $x\in f^{-1}(f(v))$, the same
+                    argument as above gives us $x$ connected to $t$. Since by induction
+                    $t$ is connected to $f(t) = t'$, we can conclude. Otherwise it is the
+                    same as always.
+            \end{itemize}
+    \end{itemize}
+\end{prf}
+
+We can thus give the following lemma~:
+
+\begin{lem}\label{subst_connection}
+    \[\forall b\in\mathbb{B}. \forall x, y\in\dom(\theta(b)).
+    \theta(b)(x) = \theta(b)(y) \iff
+    \exists c\in\text{CC}(\G(b)). x\in c\wedge y\in c\]
+\end{lem}
+
+In other words, two variables have the same image by $\theta(b)$ if and only if
+they are connected by the binding.
+
+\begin{prf}
+    \paragraph{$\implies$} Immediate application of lemma \ref{image_connected}.
+
+    \paragraph{$\impliedby$} If $x=y$, the result is immediate by induction.
+    
+    By immediate induction, we can show that if two variables
+    have the same image by $\theta(b)$, they have the same image by any $\theta(b')$
+    where $b'$ is $b$ with additional bindings. This will allow us to restrict ourselves
+    to postfixes of $b$. Furthermore, a path between two variables can have at most
+    one lisp term which is not a variable (otherwise the binding would be incorrect).
+    Thus we only need to treat the cases were $x$ and $y$ are either adjacent or
+    separated by a non-variable.
+    
+    In this second case, ie $(x,t)\in b$ and $(y,t)\in b)$, it is immediate that
+    $\theta(b)(x) = t = \theta(b)(y)$.
+
+    We must now treat the case when $(x,y)\in b$ or $(y,x)\in b$. These cases are
+    symmetric and we can furthermore assume $(x,y)$ s the head of $b$. Let
+    $f = \theta(b')$ where $b'$ is the tail of $b$. The result is obtained by a
+    disjunction on whether $x\in\dom(f)$ and $y\in\dom(f)$.
+\end{prf}
+
+\begin{lem}\label{ordered_theta}
+    \[\forall b\in\mathbb{B}. \forall x\in\dom(\theta(b)).
+    \theta(b)(x)\not\in\mathbb{V}\vee \theta(b)(x)\leq_\mathbb{V} x\]
+\end{lem}
+
+This lemma is immediate.
+
+The proof of the theorem \ref{theta-congru} is now pretty straightforward.
+
+\begin{prf}
+    Lemma \ref{subst_connection} and lemma \ref{ordered_theta} tell us that $\theta(b)$
+    is a function that links a variable $v$ to the unique not-variable term in its
+    connected component if any, or to the smallest (by $\leq_\mathbb{V}$) variable in its
+    component otherwise. In other words, it deterministically choose an element of the
+    connected component of its argument.
+
+    Thus it holds all information about the connected components, and can be determined
+    only by them.
+\end{prf}
+
+\begin{theo}{Correction of $\theta$}
+    \[ \forall b\in\mathbb{B}. \B(\theta(b)) \sim b \]
+\end{theo}
+\begin{prf}
+    The interpretation of $\theta$ as the function choosing a representant for the
+    connected component of its argument gives us this result~: $\G(\B(\theta(b)))$ is
+    basically $\G(\theta(b))$ were all nodes have been moved to distance 1 of the
+    representant of their connected component.
+\end{prf}
+
+\subsection{Lisp equality}
+
+% TODO
 
 \section{The logic system}
 
