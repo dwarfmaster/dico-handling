@@ -48,6 +48,8 @@
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\1}{\mathbbm{1}}
 \newcommand{\0}{\mathbbm{0}}
+\renewcommand{\S}{\mathbb{S}}
+\renewcommand{\V}{\mathbb{V}}
 \renewcommand{\phi}{\varphi}
 
 \newtheorem{theo}{Theorem}
@@ -58,33 +60,338 @@
 \newtheorem{ex}{Example}
 
 \newcommand{\Prop}{\text{Prop}}
+\newcommand{\Sym}{\text{Sym}}
+\newcommand{\Var}{\text{Var}}
+\newcommand{\Seq}{\text{Seq}}
+\newcommand{\Map}{\text{Map}}
+\newcommand{\Set}{\text{Set}}
+\newcommand{\sset}{{\Set_\sigma}}
 \newcommand{\mfill}{\hspace*{\fill}}
+\newcommand{\proof}[1]{{\scantokens{\begin{prooftree}#1\end{prooftree}}}}
+\renewcommand{\subset}{\subseteq}
+
+\setlength{\jot}{1.5ex}
 
 \begin{document}
-\title{Logic system for FCG}
+\title{Optimizing Fluid Construction Grammar}
 \author{Luc Chabassier}
 \maketitle
 
+\section{Introduction}
+
+Fluid Construction Grammar is an implementation of a construction grammar,
+based on unification, in Lisp.
+% TODO details
+
+We aim to optimize it by giving a criterion to find constructions which
+\emph{commutes}, meaning that applying them will not reduce the possibilities.
+This should allow to reduce the search path by allowing to apply them
+exhaustively first when looking for a derivation. This idea is inspired by
+\emph{focusing} in automated proof search.
+% TODO sources for focusing
+
+\section{Matching}
+
+In this section we will try to formalize how the matching (unification) is done
+in FCG. To do that, we must first define what a lisp term is.
+
+\begin{defi}{Lisp term}
+    \[\begin{array}{rcll}
+        t & = & ?v    & \text{variable} \\
+          & | & s     & \text{symbol}   \\
+          & | & t . t & \text{cons}     \\
+          & | & ()    & \text{nil}      \\
+          & | & \{\}  & \emptyset       \\
+    \end{array}\]
+\end{defi}
+
+Let's write $LT$ the set of lisp terms defined according to the above
+definition. Notice how we distinguish sets and lists syntactically.
+In lisp the difference is purely semantic, but it allows us to avoid
+having to carry type annotations with our terms. To make it more
+readable, we write $a.b.\cdots.() = (a\ b\ \cdots)$ and
+$a.b.\cdots.\{\} = \{a\ b\ \cdots\}$.
+
+\begin{ex}{Some lisp terms}\begin{itemize}
+    \item The list with the symbols $x$, $y$ and the variable $v$~:
+        $x.y.?v.() = (x\ y\ ?v)$
+    \item Another list, with longer symbols~: $(print ?x)$
+    \item A set with some symbols and variables~: $\{x\ y\ x\ ?v\ x\}$. Notice
+        how the set can have more than one occurrence of a symbol or variable, indeed
+        it is just a list with an annotation saying it should be treated as a set.
+    \item A more complicated term~: $(return\ ((print\ \{a\ b\ ?v\})\ ?u))$
+\end{itemize}\end{ex}
+
+What an unification algorithm does is to find a \emph{substitution} (or matching in
+FCG terms) to make two terms equals. To be able to express it, we must thus define
+what a substitution is, and them how is equality computed.
+
+\begin{defi}{Substitution}
+    A substitution is a partial function $f$ from variables to lisp terms.
+
+    We note $\text{dom}(f)$ the variables for which it is defined.
+\end{defi}
+
+But what FCG matching computes is not any substitution but a binding, ie a list
+of pairs, with the first element a variable and the second one a lisp term in which
+the variable does not occur (we assume the matching would have failed in case of
+a circular binding).
+
+We must now give a way to transform a binding into a substitution (the other way is
+easy if the substitution has a finite domain, just link $?v$ to $f(?v)$ for
+$?v\in\text{dom}(f)$).
+
+\begin{defi}{$\Phi$}
+    If $b$ is a binding, we define $\Phi(b)$ a substitution associated. We define
+    it inductively on the length of $b$.
+
+    If $b$ is the empty list, $\Phi(b)$ is the substitution with empty domain.
+    % TODO
+\end{defi}
+
+\section{The logic system}
+
+We first add the usual axioms of equational logic (LE),
+in a many-sorted like manner (every equality is between element
+of the same sort, and the equality itself is of sort $\Prop$)~:
+
 \[\text{LE}\left\{
-\quad\begin{prooftree}
+\begin{gathered}
+\proof{
     \hypo{M : \sigma}
     \infer1[R]{M =_\sigma M : \Prop}
-\end{prooftree}
-\qquad\begin{prooftree}
+}
+\qquad\proof{
     \hypo{ N =_\sigma M : \Prop }
     \infer1[S]{M =_\sigma N : \Prop}
-\end{prooftree}
-\qquad\begin{prooftree}
+}
+\qquad\proof{
     \hypo{M=_\sigma N : \Prop}
     \hypo{N=_\sigma O : \Prop}
     \infer2[T]{M=_\sigma O : \Prop}
-\end{prooftree}
-%\\
-%&\begin{prooftree}
-%    \hypo{M=_\sigma N:\Prop\quad C[N]=_\sigma O:\Lambda}
-%    \infer1[IL]{C[M]=_\sigma O : \Lambda}
-%\end{prooftree}
+} \\
+\proof{
+    \hypo{M=_\sigma N:\Prop}
+    \hypo{C[N]=_\tau O:\Prop}
+    \infer2[IL]{C[M]=_\tau O : \Prop}
+}
+\qquad\proof{
+    \hypo{M =_\sigma C[N]:\Prop}
+    \hypo{N =_\tau O:\Prop}
+    \infer2[IR]{M =_\sigma C[O]:\Prop}
+} \\
+\proof{
+    \hypo{C[N]=_\sigma D[M]:\Prop}
+    \hypo{C[\_]\sim D[\_]}
+    \hypo{N:\sigma}
+    \hypo{M:\sigma}
+    \infer4[E]{N=_\sigma M:\Prop}
+}
+\end{gathered}
 \right.
 \]
+
+Then we need two sorts for lisp symbols and variables. We assume they
+are given as two sets $\S$ for symbols and $\V$ for variables.
+Furthermore, while this logic focus on equality, and it is not possible
+to express inequality for generic sort, we make equality for $\S$
+decidable.
+
+\[\text{LE}_\text{lisp}\left\{
+    \begin{gathered}
+        \proof{
+            \infer0[IS (for $s\in\S$)]{s : \Sym}
+        }
+        \qquad\proof{
+            \infer0[IV (for $v\in\V)$]{v : \Var}
+        }\\
+        \proof{
+            \infer0[SNE (for $s_1\neq s_2\in\S$)]{s_1\neq s_2:\Prop}
+        }
+    \end{gathered}
+\right.\]
+
+Now that we have the basic sorts, we must add axioms for more complicated
+structures. Let's start with sequences~:
+
+\[\text{LE}_\text{Seq}\left\{
+    \begin{gathered}
+        \proof{
+            \infer0[SNil]{[]:\Seq}
+        }
+        \qquad\proof{
+            \hypo{x:\sigma}
+            \hypo{l:\Seq}
+            \infer2{SCons}{x::l : \Seq}
+        }
+    \end{gathered}
+\right.\]
+
+More complicated, maps of symbols to any sort~:
+
+\[\text{LE}_\text{Map}\left\{
+    \begin{gathered}
+        \proof{
+            \infer0[EmptyMap]{\theta:\Map}
+        }
+        \qquad\proof{
+            \hypo{k : \Sym}
+            \hypo{v : \sigma}
+            \hypo{m : \Map}
+            \infer3[InsertMap]{m[k\rightarrow v] : \Map}
+        }\\
+        \proof{
+            \hypo{k : \Sym}
+            \hypo{v : \sigma}
+            \hypo{m : \Map}
+            \infer3[LookupEnd]{m[k\rightarrow v]k =_\sigma v:\Prop}
+        }\\
+        \proof{
+            \hypo{m : \Map}
+            \hypo{k_1\neq k_2 : \Prop}
+            \hypo{m k_1 =_\sigma v_1 : \Prop}
+            \hypo{v_2 : \tau}
+            \infer4[LookupRec]{m[k_2\rightarrow v_2]k_2 =_\sigma v_1 : \Prop}
+        }\\
+        \proof{
+            \hypo{m : \Map}
+            \hypo{v_1 : \sigma}
+            \hypo{v_2 : \tau}
+            \hypo{k_1\neq k_2 : \Prop}
+            \infer4[InsCom]{m[k_1\rightarrow v_1][k_2\rightarrow v_2] =_\Map
+                    m[k_2\rightarrow v_2][k_1\rightarrow v_1] : \Prop}
+        }\\
+        \proof{
+            \hypo{m : \Map}
+            \hypo{v_1 : \sigma}
+            \hypo{v_2 : \tau}
+            \hypo{k : \Sym}
+            \infer4[InsIdem]{m[k\rightarrow v_1][k\rightarrow v_2] =_\Map
+                    m[k\rightarrow v_2] : \Prop}
+        }
+    \end{gathered}
+\right.\]
+
+Finally, we must have a way to manipulate sets of a certain sort. Since it is pretty
+complicated, we will split it in two sets of definitions. The first one deals with
+the algebra of sets relative to union and intersection. The second one defines the
+inclusion property of sets.
+
+\[\text{LE}_\text{Set}\left\{
+    \begin{gathered}
+        \proof{
+            \hypo{x:\sigma}
+            \infer1[Sing]{\{x\} : \Set_\sigma}
+        }
+        \qquad\proof{
+            \infer0[EmptySet]{\emptyset_\sigma : \Set_\sigma}
+        }
+        \qquad\proof{
+            \infer0[Universe]{U_\sigma : \Set_\sigma}
+        }\\
+        \proof{
+            \hypo{A, B : \Set_\sigma}
+            \infer1[Union]{A\cup B : \Set_\sigma}
+        }
+        \qquad\proof{
+            \hypo{A, B : \Set_\sigma}
+            \infer1[Intersec]{A\cap B: \Set_\sigma}
+        }\\
+        \proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[UIdem]{A\cup A =_{\Set_\sigma} A : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A, B : \Set_\sigma}
+            \infer1[UComm]{A\cup B =_{\Set_\sigma} B\cup A : \Prop}
+        }\\
+        \proof{
+            \hypo{A, B, C : \Set_\sigma}
+            \infer1[UAssoc]{A\cup (B\cup C) =_{\Set_\sigma} (A\cup B)\cup C : \Prop}
+        }\\
+        \proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[IntIdem]{A\cap A =_{\Set_\sigma} A : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A, B : \Set_\sigma}
+            \infer1[IntComm]{A\cap B =_{\Set_\sigma} B\cap A : \Prop}
+        }\\
+        \proof{
+            \hypo{A, B, C : \Set_\sigma}
+            \infer1[IntAssoc]{A\cap (B\cap C) =_{\Set_\sigma} (A\cap B)\cap C : \Prop}
+        }\\
+        \proof{
+            \hypo{A, B, C : \Set_\sigma}
+            \infer1[UDistrib]{A\cup (B\cap C) =_{\Set_\sigma}
+                              (A\cap B) \cup (B\cap C) : \Prop}
+        }\\
+        \proof{
+            \hypo{A, B, C : \Set_\sigma}
+            \infer1[IDistrib]{A\cap (B\cup C) =_{\Set_\sigma}
+                              (A\cup B) \cap (B\cup C) : \Prop}
+        }\\
+        \proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[UEmpty]{A\cup \emptyset_\sigma =_{\Set_\sigma} A : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[UUniv]{A\cup U_\sigma =_{\Set_\sigma} U_\sigma : \Prop}
+        }\\
+        \proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[UEmpty]{A\cap \emptyset_\sigma =_{\Set_\sigma}
+                            \emptyset_\sigma : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A : \Set_\sigma}
+            \infer1[UUniv]{A\cup U_\sigma =_{\Set_\sigma} A : \Prop}
+        }\\
+    \end{gathered}
+\right.\]
+
+And now the axioms for inclusion~:
+
+\[\text{LE}_\subset\left\{
+    \begin{gathered}
+        \proof{
+            \hypo{A:\sigma}
+            \infer1[IncRefl]{A\subset_\sigma A : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A\subset_\sigma B : \Prop}
+            \hypo{B\subset_\sigma C : \Prop}
+            \infer2[IncTrans]{A\subset\sigma C:\Prop}
+        }\\
+        \proof{
+            \hypo{A\subset_\sigma B : \Prop}
+            \hypo{B\subset_\sigma A : \Prop}
+            \infer2[IncAnti]{A =_\sset B : \Prop}
+        }\\
+        \proof{
+            \hypo{A : \sset}
+            \infer1[IncUni]{A\subset_\sset U_\sigma : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A : \sset}
+            \infer1[IncEmpty]{\emptyset_\sigma\subset_\sigma A : \Prop}
+        }\\
+        \proof{
+            \hypo{A, B : \sset}
+            \infer1[IncUni]{A \subset_\sigma A\cup B : \Prop}
+        }
+        \qquad\proof{
+            \hypo{A, B : \sset}
+            \infer1[IncInter]{A\cap B\subset_\sigma A : \Prop}
+        }\\
+        \proof{
+            \hypo{A=_\sset C : \Prop}
+            \hypo{B=_\sset D : \Prop}
+            \hypo{A \subset_\sigma B : \Prop}
+            \infer3[IncEq]{C\subset_\sigma D : \Prop}
+        }
+    \end{gathered}
+\right.\]
 
 \end{document}
