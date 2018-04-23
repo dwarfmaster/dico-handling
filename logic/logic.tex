@@ -20,7 +20,7 @@
 \usepackage{tabularx}
 \usepackage{listings}
 \usepackage{ebproof}
-\newcommand{\seg}[2]{\llbracket #1, #2 \rrbracket}
+\newcommand{\sem}[1]{\llbracket #1 \rrbracket}
 
 \MakeRobust{\overrightarrow}
 
@@ -351,7 +351,79 @@ The proof of the theorem \ref{theta-congru} is now pretty straightforward.
 
 \subsection{Lisp equality}
 
-% TODO
+We will now assume that the annotation of lists in terms is one of $\{\text{list},
+\text{map}, \text{set}\}$ and that we have annotation for symbols and variables
+of the same kind. In case the annotation is $\text{map}$, we assume the list is of
+even length, of the form $(key_1\ value_1\ key_2\ value_2\dots)_\text{map}$.
+
+We now want to define an equality for lisp terms.
+
+\subsubsection{Syntactical equality}
+
+For variables, symbols and lists, syntactical equality is sufficient. That means
+that $?v = ?u \iff u = v$, same for symbols. For lists, it means that~:
+\[\left|\begin{array}{l}
+    t_1._\text{list}t_2 = t_1'._\text{list}t_2'\iff t_1 = t_1' \wedge t_2 = t_2'\\
+    ()_\text{list} = ()_\text{list} \\
+\end{array}\right.\]
+
+\subsubsection{Set equality}
+
+Set equality is a bit more complicated in that it can't be defined directly by
+induction on the syntactical definition. First we must define a relation denotating the
+appartenance of an element in a set~:
+\[t\in t_1._\text{set}t_2\iff t = t_1\vee t\in t_2\]
+
+With that we can define the inclusion of a set into another by~:
+\[\left|\begin{array}{l}
+    t_1._\text{set}t_2\subset s\iff t_1\in s\wedge t_2\subset s \\
+    ()_\text{set}\subseteq s \\
+\end{array}\right.\]
+
+Set equality is thus simply mutual inclusion
+$s_1= s_2\iff s_1\subset s_2\wedge s_2\subset s_1$.
+
+Notice how this definition gives us $(a a a)_\text{set} = (a)_\text{set}$.
+
+\subsubsection{Map equality}
+
+For maps, the basic operations is the \emph{lookup}. Basically two maps are
+equals if they have the same keys and lookup on the same key give the same
+value.
+
+So first we define the lookup~:
+\[\text{lookup}\ k\ t._\text{map} t'._\text{map}.tl = v \iff
+(k = t\wedge v = t')\vee \text{lookup}\ k\ tl = v \]
+
+Then we can define the set of keys of a map~:
+\[\left|\begin{array}{l}
+    \text{keys}\ k._\text{map}v._\text{map}.t = k._\text{set}\text{keys}\ t \\
+    \text{keys}\ ()_\text{map} = ()_\text{set} \\
+\end{array}\right.\]
+
+Now we can define the equality on a set for two maps (this is only well defined
+if the considered set is included in the intersection of keys of the two maps)~:
+\[\left|\begin{array}{l}
+    m_1 =_{k.ks} m_2 \iff \text{lookup}\ k\ m_1 = \text{lookup}\ k\ m_2
+                          \wedge m_1 =_{ks} m_2 \\
+    m_1 =_{()_\text{set}} m_2 \\
+\end{array}\right.\]
+
+Finally, we can define the equality of two maps as having the same keys and
+being equal on this set~:
+
+\[m_1 = m_2 \iff \text{keys}\ m_1 = \text{keys}\ m_2
+                 \wedge m_1 =_{\text{keys}\ m_1} m_2 \]
+
+\subsection{Unification reformulation}
+
+We can now give a formal definition to unification~: two terms $t_1$ and $t_2$ are
+unifiable if a finite binding $b$ exits such that $t_1\theta(b) = t_2\theta(b)$.
+
+This definition has the advantage of formalism, but is a bit painful to manipulate.
+We want to reformulate it as the existence of a proof of equality in a well
+chosen logic. The next section will introduce such a logic, and we will then focus
+on translating lisp terms to this logic.
 
 \section{The logic system}
 
@@ -426,7 +498,7 @@ structures. Let's start with sequences~:
         \qquad\proof{
             \hypo{x:\sigma}
             \hypo{l:\Seq}
-            \infer2{SCons}{x::l : \Seq}
+            \infer2[SCons]{x::l : \Seq}
         }
     \end{gathered}
 \right.\]
@@ -485,72 +557,72 @@ inclusion property of sets.
     \begin{gathered}
         \proof{
             \hypo{x:\sigma}
-            \infer1[Sing]{\{x\} : \Set_\sigma}
+            \infer1[Sing]{\{x\} : \Set}
         }
         \qquad\proof{
-            \infer0[EmptySet]{\emptyset_\sigma : \Set_\sigma}
+            \infer0[EmptySet]{\emptyset : \Set}
         }
         \qquad\proof{
-            \infer0[Universe]{U_\sigma : \Set_\sigma}
+            \infer0[Universe]{U : \Set}
         }\\
         \proof{
-            \hypo{A, B : \Set_\sigma}
-            \infer1[Union]{A\cup B : \Set_\sigma}
+            \hypo{A, B : \Set}
+            \infer1[Union]{A\cup B : \Set}
         }
         \qquad\proof{
-            \hypo{A, B : \Set_\sigma}
-            \infer1[Intersec]{A\cap B: \Set_\sigma}
+            \hypo{A, B : \Set}
+            \infer1[Intersec]{A\cap B: \Set}
         }\\
         \proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[UIdem]{A\cup A =_{\Set_\sigma} A : \Prop}
+            \hypo{A : \Set}
+            \infer1[UIdem]{A\cup A =_{\Set} A : \Prop}
         }
         \qquad\proof{
-            \hypo{A, B : \Set_\sigma}
-            \infer1[UComm]{A\cup B =_{\Set_\sigma} B\cup A : \Prop}
+            \hypo{A, B : \Set}
+            \infer1[UComm]{A\cup B =_{\Set} B\cup A : \Prop}
         }\\
         \proof{
-            \hypo{A, B, C : \Set_\sigma}
-            \infer1[UAssoc]{A\cup (B\cup C) =_{\Set_\sigma} (A\cup B)\cup C : \Prop}
+            \hypo{A, B, C : \Set}
+            \infer1[UAssoc]{A\cup (B\cup C) =_{\Set} (A\cup B)\cup C : \Prop}
         }\\
         \proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[IntIdem]{A\cap A =_{\Set_\sigma} A : \Prop}
+            \hypo{A : \Set}
+            \infer1[IntIdem]{A\cap A =_{\Set} A : \Prop}
         }
         \qquad\proof{
-            \hypo{A, B : \Set_\sigma}
-            \infer1[IntComm]{A\cap B =_{\Set_\sigma} B\cap A : \Prop}
+            \hypo{A, B : \Set}
+            \infer1[IntComm]{A\cap B =_{\Set} B\cap A : \Prop}
         }\\
         \proof{
-            \hypo{A, B, C : \Set_\sigma}
-            \infer1[IntAssoc]{A\cap (B\cap C) =_{\Set_\sigma} (A\cap B)\cap C : \Prop}
+            \hypo{A, B, C : \Set}
+            \infer1[IntAssoc]{A\cap (B\cap C) =_{\Set} (A\cap B)\cap C : \Prop}
         }\\
         \proof{
-            \hypo{A, B, C : \Set_\sigma}
-            \infer1[UDistrib]{A\cup (B\cap C) =_{\Set_\sigma}
+            \hypo{A, B, C : \Set}
+            \infer1[UDistrib]{A\cup (B\cap C) =_{\Set}
                               (A\cap B) \cup (B\cap C) : \Prop}
         }\\
         \proof{
-            \hypo{A, B, C : \Set_\sigma}
-            \infer1[IDistrib]{A\cap (B\cup C) =_{\Set_\sigma}
+            \hypo{A, B, C : \Set}
+            \infer1[IDistrib]{A\cap (B\cup C) =_{\Set}
                               (A\cup B) \cap (B\cup C) : \Prop}
         }\\
         \proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[UEmpty]{A\cup \emptyset_\sigma =_{\Set_\sigma} A : \Prop}
+            \hypo{A : \Set}
+            \infer1[UEmpty]{A\cup \emptyset =_{\Set} A : \Prop}
         }
         \qquad\proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[UUniv]{A\cup U_\sigma =_{\Set_\sigma} U_\sigma : \Prop}
+            \hypo{A : \Set}
+            \infer1[UUniv]{A\cup U =_{\Set} U : \Prop}
         }\\
         \proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[UEmpty]{A\cap \emptyset_\sigma =_{\Set_\sigma}
-                            \emptyset_\sigma : \Prop}
+            \hypo{A : \Set}
+            \infer1[UEmpty]{A\cap \emptyset =_{\Set}
+                            \emptyset : \Prop}
         }
         \qquad\proof{
-            \hypo{A : \Set_\sigma}
-            \infer1[UUniv]{A\cup U_\sigma =_{\Set_\sigma} A : \Prop}
+            \hypo{A : \Set}
+            \infer1[UUniv]{A\cup U =_{\Set} A : \Prop}
         }\\
     \end{gathered}
 \right.\]
@@ -560,42 +632,101 @@ And now the axioms for inclusion~:
 \[\text{LE}_\subset\left\{
     \begin{gathered}
         \proof{
-            \hypo{A:\sigma}
-            \infer1[IncRefl]{A\subset_\sigma A : \Prop}
+            \hypo{A:\Set}
+            \infer1[IncRefl]{A\subset A : \Prop}
         }
         \qquad\proof{
-            \hypo{A\subset_\sigma B : \Prop}
-            \hypo{B\subset_\sigma C : \Prop}
-            \infer2[IncTrans]{A\subset\sigma C:\Prop}
+            \hypo{A\subset B : \Prop}
+            \hypo{B\subset C : \Prop}
+            \infer2[IncTrans]{A\subset C:\Prop}
         }\\
         \proof{
-            \hypo{A\subset_\sigma B : \Prop}
-            \hypo{B\subset_\sigma A : \Prop}
-            \infer2[IncAnti]{A =_\sset B : \Prop}
+            \hypo{A\subset B : \Prop}
+            \hypo{B\subset A : \Prop}
+            \infer2[IncAnti]{A =_\Set B : \Prop}
         }\\
         \proof{
-            \hypo{A : \sset}
-            \infer1[IncUni]{A\subset_\sset U_\sigma : \Prop}
+            \hypo{A : \Set}
+            \infer1[IncUni]{A\subset_\Set U : \Prop}
         }
         \qquad\proof{
-            \hypo{A : \sset}
-            \infer1[IncEmpty]{\emptyset_\sigma\subset_\sigma A : \Prop}
+            \hypo{A : \Set}
+            \infer1[IncEmpty]{\emptyset\subset A : \Prop}
         }\\
         \proof{
-            \hypo{A, B : \sset}
-            \infer1[IncUni]{A \subset_\sigma A\cup B : \Prop}
+            \hypo{A, B : \Set}
+            \infer1[IncUni]{A \subset A\cup B : \Prop}
         }
         \qquad\proof{
-            \hypo{A, B : \sset}
-            \infer1[IncInter]{A\cap B\subset_\sigma A : \Prop}
+            \hypo{A, B : \Set}
+            \infer1[IncInter]{A\cap B\subset A : \Prop}
         }\\
         \proof{
-            \hypo{A=_\sset C : \Prop}
-            \hypo{B=_\sset D : \Prop}
-            \hypo{A \subset_\sigma B : \Prop}
-            \infer3[IncEq]{C\subset_\sigma D : \Prop}
+            \hypo{A=_\Set C : \Prop}
+            \hypo{B=_\Set D : \Prop}
+            \hypo{A \subset B : \Prop}
+            \infer3[IncEq]{C\subset D : \Prop}
         }
     \end{gathered}
 \right.\]
+
+\begin{defi}{Derivation}
+    If an expression $E$ can be derived from a set of hypothesis $\Gamma$
+    according to the previous logic, we write $\Gamma\vdash E$.
+
+    If $\Gamma = \emptyset$, we can write $\vdash E$.
+\end{defi}
+
+\section{A deductive formulation of unification}
+
+Now that we have formalized lisp terms and a logic system, we need we way to
+\emph{translate} the lisp terms in this system. We will write the translation
+of a lisp term $\sem{t}$.
+
+\subsection{Translating lisp term into the logic system}
+
+\subsubsection{Translation}
+
+The logic system will have $\S$ the set of all lisp symbols and $\V$ the set
+of all lisp variables. If $s$ is a symbol, we define $\sem{s} = s$. If $v$ is a
+variable, we define $\sem{v} = v$.
+
+Since we created the logic for this, the translation are pretty straightforward.
+Here is the translation of a list~:
+\[\left|\begin{array}{lcl}
+    \sem{t._\text{list} t'} & = & \sem{t} :: \sem{t'} \\
+    \sem{()_\text{list}}    & = & [] \\
+\end{array}\right.\]
+
+Translation for maps~:
+\[\left|\begin{array}{lcl}
+    \sem{k._\text{map}v._\text{map}m} & = & \sem{m}[\sem{k}\rightarrow\sem{v}] \\
+    \sem{()_\text{map}} & = & \theta \\
+\end{array}\right.\]
+
+And the translation for sets~:
+
+\[\left|\begin{array}{lcl}
+    \sem{x._\text{set} s} & = & \{\sem{x}\}\cup\sem{s} \\
+    \sem{()_\text{set}} & = & \emptyset \\
+\end{array}\right.\]
+
+It is easy to show that these constructions are valid, ie~:
+
+\[\begin{gathered}
+    \vdash \sem{s}:\Sym\qquad\vdash \sem{v}:\Var \\
+    \vdash \sem{t_\text{list}}:\Seq
+    \qquad\vdash\sem{t_\text{map}}:\Map
+    \qquad\vdash\sem{t_\text{set}}:\Set
+\end{gathered}\]
+
+\subsubsection{Correction}
+
+It is trivial to show that $s_1 = s_2 \iff \vdash \sem{s_1} = \sem{s_2}$, and
+the same for variables and lists (assuming the results holds for the contents of
+the list).
+
+% TODO
+
 
 \end{document}
