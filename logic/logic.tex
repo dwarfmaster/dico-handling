@@ -3,7 +3,7 @@
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage[english]{babel}
-%\usepackage[left=1cm, right=1cm, bottom=1cm, top=1cm]{geometry}
+\usepackage[left=2cm, right=2cm, bottom=2cm, top=2cm]{geometry}
 \usepackage{fixltx2e}
 \usepackage{fancyhdr}
 \usepackage{graphicx}
@@ -383,7 +383,7 @@ With that we can define the inclusion of a set into another by~:
 Set equality is thus simply mutual inclusion
 $s_1= s_2\iff s_1\subset s_2\wedge s_2\subset s_1$.
 
-Notice how this definition gives us $(a a a)_\text{set} = (a)_\text{set}$.
+Notice how this definition gives us $(a\ a\ a)_\text{set} = (a)_\text{set}$.
 
 \subsubsection{Map equality}
 
@@ -393,7 +393,7 @@ value.
 
 So first we define the lookup~:
 \[\text{lookup}\ k\ t._\text{map} t'._\text{map}.tl = v \iff
-(k = t\wedge v = t')\vee \text{lookup}\ k\ tl = v \]
+(k = t\wedge v = t')\vee (k\neq t\wedge\text{lookup}\ k\ tl = v) \]
 
 Then we can define the set of keys of a map~:
 \[\left|\begin{array}{l}
@@ -435,33 +435,31 @@ of the same sort, and the equality itself is of sort $\Prop$)~:
 \begin{gathered}
 \proof{
     \hypo{M : \sigma}
-    \infer1[R]{M =_\sigma M : \Prop}
+    \infer1[R]{M = M : \Prop}
 }
 \qquad\proof{
-    \hypo{ N =_\sigma M : \Prop }
-    \infer1[S]{M =_\sigma N : \Prop}
+    \hypo{ N = M : \Prop }
+    \infer1[S]{M = N : \Prop}
 }
 \qquad\proof{
-    \hypo{M=_\sigma N : \Prop}
-    \hypo{N=_\sigma O : \Prop}
-    \infer2[T]{M=_\sigma O : \Prop}
+    \hypo{M= N : \Prop}
+    \hypo{N= O : \Prop}
+    \infer2[T]{M= O : \Prop}
 } \\
 \proof{
-    \hypo{M=_\sigma N:\Prop}
-    \hypo{C[N]=_\tau O:\Prop}
-    \infer2[IL]{C[M]=_\tau O : \Prop}
+    \hypo{M= N:\Prop}
+    \hypo{C[N]= O:\Prop}
+    \infer2[IL]{C[M]= O : \Prop}
 }
 \qquad\proof{
-    \hypo{M =_\sigma C[N]:\Prop}
-    \hypo{N =_\tau O:\Prop}
-    \infer2[IR]{M =_\sigma C[O]:\Prop}
+    \hypo{M = C[N]:\Prop}
+    \hypo{N = O:\Prop}
+    \infer2[IR]{M = C[O]:\Prop}
 } \\
 \proof{
-    \hypo{C[N]=_\sigma D[M]:\Prop}
+    \hypo{C[N]= D[M]:\Prop}
     \hypo{C[\_]\sim D[\_]}
-    \hypo{N:\sigma}
-    \hypo{M:\sigma}
-    \infer4[E]{N=_\sigma M:\Prop}
+    \infer2[E]{N= M:\Prop}
 }
 \end{gathered}
 \right.
@@ -520,21 +518,21 @@ More complicated, maps of symbols to any sort~:
             \hypo{k : \Sym}
             \hypo{v : \sigma}
             \hypo{m : \Map}
-            \infer3[LookupEnd]{m[k\rightarrow v]k =_\sigma v:\Prop}
+            \infer3[LookupEnd]{m[k\rightarrow v]k = v:\Prop}
         }\\
         \proof{
             \hypo{m : \Map}
             \hypo{k_1\neq k_2 : \Prop}
-            \hypo{m k_1 =_\sigma v_1 : \Prop}
+            \hypo{m k_1 = v_1 : \Prop}
             \hypo{v_2 : \tau}
-            \infer4[LookupRec]{m[k_2\rightarrow v_2]k_2 =_\sigma v_1 : \Prop}
+            \infer4[LookupRec]{m[k_2\rightarrow v_2]k_2 = v_1 : \Prop}
         }\\
         \proof{
             \hypo{m : \Map}
             \hypo{v_1 : \sigma}
             \hypo{v_2 : \tau}
             \hypo{k_1\neq k_2 : \Prop}
-            \infer4[InsCom]{m[k_1\rightarrow v_1][k_2\rightarrow v_2] =_\Map
+            \infer4[InsCom]{m[k_1\rightarrow v_1][k_2\rightarrow v_2] =
                     m[k_2\rightarrow v_2][k_1\rightarrow v_1] : \Prop}
         }\\
         \proof{
@@ -542,7 +540,7 @@ More complicated, maps of symbols to any sort~:
             \hypo{v_1 : \sigma}
             \hypo{v_2 : \tau}
             \hypo{k : \Sym}
-            \infer4[InsIdem]{m[k\rightarrow v_1][k\rightarrow v_2] =_\Map
+            \infer4[InsIdem]{m[k\rightarrow v_1][k\rightarrow v_2] =
                     m[k\rightarrow v_2] : \Prop}
         }
     \end{gathered}
@@ -575,54 +573,54 @@ inclusion property of sets.
         }\\
         \proof{
             \hypo{A : \Set}
-            \infer1[UIdem]{A\cup A =_{\Set} A : \Prop}
+            \infer1[UIdem]{A\cup A = A : \Prop}
         }
         \qquad\proof{
             \hypo{A, B : \Set}
-            \infer1[UComm]{A\cup B =_{\Set} B\cup A : \Prop}
+            \infer1[UComm]{A\cup B = B\cup A : \Prop}
         }\\
         \proof{
             \hypo{A, B, C : \Set}
-            \infer1[UAssoc]{A\cup (B\cup C) =_{\Set} (A\cup B)\cup C : \Prop}
+            \infer1[UAssoc]{A\cup (B\cup C) = (A\cup B)\cup C : \Prop}
         }\\
         \proof{
             \hypo{A : \Set}
-            \infer1[IntIdem]{A\cap A =_{\Set} A : \Prop}
+            \infer1[IntIdem]{A\cap A = A : \Prop}
         }
         \qquad\proof{
             \hypo{A, B : \Set}
-            \infer1[IntComm]{A\cap B =_{\Set} B\cap A : \Prop}
+            \infer1[IntComm]{A\cap B = B\cap A : \Prop}
         }\\
         \proof{
             \hypo{A, B, C : \Set}
-            \infer1[IntAssoc]{A\cap (B\cap C) =_{\Set} (A\cap B)\cap C : \Prop}
+            \infer1[IntAssoc]{A\cap (B\cap C) = (A\cap B)\cap C : \Prop}
         }\\
         \proof{
             \hypo{A, B, C : \Set}
-            \infer1[UDistrib]{A\cup (B\cap C) =_{\Set}
+            \infer1[UDistrib]{A\cup (B\cap C) =
                               (A\cap B) \cup (B\cap C) : \Prop}
         }\\
         \proof{
             \hypo{A, B, C : \Set}
-            \infer1[IDistrib]{A\cap (B\cup C) =_{\Set}
+            \infer1[IDistrib]{A\cap (B\cup C) =
                               (A\cup B) \cap (B\cup C) : \Prop}
         }\\
         \proof{
             \hypo{A : \Set}
-            \infer1[UEmpty]{A\cup \emptyset =_{\Set} A : \Prop}
+            \infer1[UEmpty]{A\cup \emptyset = A : \Prop}
         }
         \qquad\proof{
             \hypo{A : \Set}
-            \infer1[UUniv]{A\cup U =_{\Set} U : \Prop}
+            \infer1[UUniv]{A\cup U = U : \Prop}
         }\\
         \proof{
             \hypo{A : \Set}
-            \infer1[UEmpty]{A\cap \emptyset =_{\Set}
+            \infer1[UEmpty]{A\cap \emptyset =
                             \emptyset : \Prop}
         }
         \qquad\proof{
             \hypo{A : \Set}
-            \infer1[UUniv]{A\cup U =_{\Set} A : \Prop}
+            \infer1[UUniv]{A\cup U = A : \Prop}
         }\\
     \end{gathered}
 \right.\]
@@ -643,27 +641,29 @@ And now the axioms for inclusion~:
         \proof{
             \hypo{A\subset B : \Prop}
             \hypo{B\subset A : \Prop}
-            \infer2[IncAnti]{A =_\Set B : \Prop}
+            \infer2[IncAnti]{A = B : \Prop}
         }\\
         \proof{
             \hypo{A : \Set}
-            \infer1[IncUni]{A\subset_\Set U : \Prop}
+            \infer1[IncUni]{A\subset U : \Prop}
         }
         \qquad\proof{
             \hypo{A : \Set}
             \infer1[IncEmpty]{\emptyset\subset A : \Prop}
         }\\
         \proof{
-            \hypo{A, B : \Set}
-            \infer1[IncUni]{A \subset A\cup B : \Prop}
+            \hypo{A \subset C : \Prop}
+            \hypo{B \subset D : \Prop}
+            \infer2[IncSum]{A\cup B \subset C\cup D : \Prop}
         }
         \qquad\proof{
-            \hypo{A, B : \Set}
-            \infer1[IncInter]{A\cap B\subset A : \Prop}
+            \hypo{A \subset C : \Prop}
+            \hypo{B \subset D : \Prop}
+            \infer2[IncInter]{A\cap B \subset C\cap D : \Prop}
         }\\
         \proof{
-            \hypo{A=_\Set C : \Prop}
-            \hypo{B=_\Set D : \Prop}
+            \hypo{A= C : \Prop}
+            \hypo{B= D : \Prop}
             \hypo{A \subset B : \Prop}
             \infer3[IncEq]{C\subset D : \Prop}
         }
@@ -676,6 +676,75 @@ And now the axioms for inclusion~:
 
     If $\Gamma = \emptyset$, we can write $\vdash E$.
 \end{defi}
+
+\begin{lem}\label{inc_sum_right}
+    \[A\subset C:\Prop, B\subset C:\Prop\vdash A\cup B\subset C:\Prop \]
+\end{lem}
+\begin{prf}
+    \[\proof{
+        \hypo{A : \Set}
+        \hypo{B : \Set}
+        \infer2[Union]{A\cup B : \Set}
+        \infer1[R]{A\cup B = A\cup B}
+        \hypo{C : \Set}
+        \infer1[UIdem]{C\cup C = C}
+        \hypo{A\subset C}
+        \hypo{B\subset C}
+        \infer2[IncSum]{A\cup B\subset C\cup C}
+        \infer3[IncEq]{A\cup B\subset C}
+    }\]
+\end{prf}
+
+\begin{lem}\label{inc_sum_left}
+    \[A\subset B:\Prop, C:\Set\vdash A\subset B\cup C\]
+\end{lem}
+\begin{prf}
+    \[\proof{
+        \hypo{A:\Set}
+        \infer1[UEmpty]{A\cup\emptyset = A:\Prop}
+        \hypo{B:\Set}
+        \hypo{C:\Set}
+        \infer2[Union]{B\cup C:\Set}
+        \infer1[R]{B\cup C=B\cup C:\Prop}
+        \hypo{A\subset B}
+        \hypo{C : \Set}
+        \infer1[IncEmpty]{\emptyset\subset C:\Prop}
+        \infer2[IncSum]{A\cup\emptyset \subset B\cup C:\Prop}
+        \infer3[IncEq]{A\subset B\cup C:\Prop}
+    }\]
+\end{prf}
+
+\begin{lem}\label{inc_empty_empty}
+    \[A\subset\emptyset:\Prop\vdash A = \emptyset:\Prop\]
+\end{lem}
+\begin{prf}
+    \[\proof{
+        \hypo{A\subset\emptyset:\Prop}
+        \hypo{A:\Set}
+        \infer1[IncEmpty]{\emptyset\subset A:\Prop}
+        \infer2[IncAnti]{A = \emptyset:\Prop}
+    }\]
+\end{prf}
+
+\begin{lem}\label{sing_neq_empty}
+    \[A:\sigma\not\vdash \{A\} = \emptyset\]
+\end{lem}
+\begin{prf}
+    Follow up any derivation that could lead to the conclusion, and see that
+    they necessarily loop at some point.
+\end{prf}
+
+\begin{lem}\label{eq_to_inc}
+    \[A = B:\Prop,A:\Set\vdash A\subset B:\Prop\]
+\end{lem}
+\begin{prf}\[\proof{
+        \hypo{A:\Set}
+        \infer1[R]{A = A:\Prop}
+        \hypo{A = B:\Prop}
+        \hypo{A:\Set}
+        \infer1[IncRefl]{A \subset A : \Prop}
+        \infer3[IncEq]{A\subset B :\Prop}
+}\]\end{prf}
 
 \section{A deductive formulation of unification}
 
@@ -726,7 +795,122 @@ It is trivial to show that $s_1 = s_2 \iff \vdash \sem{s_1} = \sem{s_2}$, and
 the same for variables and lists (assuming the results holds for the contents of
 the list).
 
-% TODO
+Now we want to show the same result for sets, assuming the results holds for the
+content of the set. First we need a few lemmas.
+
+\begin{lem}{Element translation}\label{elem_trans}
+    \[\forall t\in\L, \forall s\text{ lisp set},
+      t\in s\iff \vdash \{\sem{t}\}\subset \sem{s}:\Prop\]
+\end{lem}
+\begin{prf}
+    Let $t\in\L$. Now let's procede by induction over $s$.
+
+    If $s = ()_\text{Set}$, $t\in s$ is false and so is
+    $\vdash\{\sem{t}\}\subset\emptyset:\Prop$ (by lemmas \ref{inc_empty_empty}
+    and \ref{sing_neq_empty}).
+
+    If $s = t_1._\text{Set} t_2$.
+
+    \begin{align*}
+        t\in t_1._\text{Set} t_2 &\implies t = t_1\vee t\in t_2 \\
+        &\implies \vdash \sem{t} = \sem{t_1}:\Prop
+        \vee \vdash\{\sem{t}\}\subset\sem{t_2}:\Prop\text{ by induction} \\
+    \end{align*}
+
+    And we have both~:
+
+    \[\proof{
+        \hypo{\sem{t}:\sigma}
+        \infer1[Sing]{\{\sem{t}\}:\Set}
+        \infer1[R]{\{\sem{t}\}=\{\sem{t}\}:\Prop}
+
+        \hypo{}
+        \ellipsis{}{\sem{t} = \sem{t_1}}
+        \hypo{\sem{t}:\sigma}
+        \infer1[Sing]{\{\sem{t}\}:\Set}
+        \infer1[R]{\{\sem{t}\}=\{\sem{t}\}:\Prop}
+        \infer2[IL]{\{\sem{t}\} = \{\sem{t_1}\}:\Prop}
+
+        \hypo{\sem{t}:\sigma}
+        \infer1[Sing]{\{\sem{t}\}:\Set}
+        \infer1[InclRefl]{\{\sem{t}\}\subset\{\sem{t}\}:\Prop}
+
+        \infer3[IncEq]{\{\sem{t}\}\subset\{\sem{t_1}\}:\Prop}
+        \ellipsis{Lemma \ref{inc_sum_right}}{\{\sem{t}\}\subset
+            \{\sem{t_1}\}\cup\sem{t_2}:\Prop}
+    }\]
+
+    and
+
+    \[\proof{
+        \hypo{\sem{t}:\sigma}
+        \infer1[Sing]{\{\sem{t}\}:\Set}
+        \infer1[R]{\{\sem{t}\}=\{\sem{t}\}:\Prop}
+
+        \hypo{\sem{t_2}:\Set}
+        \hypo{\sem{t_1}:\sigma}
+        \infer1[Sing]{\{\sem{t_1}\}:\Set}
+        \infer2[UComm]{\sem{t_2}\cup\{\sem{t_1}\}=\{\sem{t_1}\}\cup\sem{t_2}:\Prop}
+
+        \hypo{\{\sem{t}\}\subset\sem{t_2}}
+        \hypo{\sem{t_1}:\sigma}
+        \infer1[Sing]{\{\sem{t_1}\}:\Set}
+        \infer2[Lemma \ref{inc_sum_right}]
+               {\{\sem{t}\}\subset\sem{t_2}\cup\{\sem{t_1}\}}
+
+        \infer3[IncEq]
+               {\{\sem{t}\}\subset\{\sem{t_1}\}\cup\sem{t_2}}
+    }\]
+
+    Since $\sem{s} = \{\sem{t_1}\}\cup\sem{t_2}$, we have our conclusion for the
+    $\implies$ direction.
+
+    The other direction commes from the remark that~:
+    \begin{align*}
+        x:\sigma,A:\Set,B:\Set\vdash \{x\}\subset A\cup B:\Prop
+        \implies &x:\sigma,A:\Set\vdash \{x\}\subset A:\Prop \\
+          \vee\  &x:\sigma,B:\Set\vdash \{x\}\subset B:\Prop
+    \end{align*}
+\end{prf}
+
+\begin{lem}{Inclusion translation}\label{inc_trans}
+    \[\forall s_1\ s_2\text{ lisp sets}, s_1\subset s_2\iff
+    \vdash \sem{s_1}\subset\sem{s_2}:\Prop\]
+\end{lem}
+\begin{prf}
+    The results comes from iterating lemmas \ref{elem_trans} and \ref{inc_sum_left}.
+\end{prf}
+
+\begin{theo}{Set equality translation}\label{set_eq_trans}
+    \[\forall s_1\ s_2\text{ lisp sets}, s_1= s_2\iff
+    \vdash \sem{s_1}=\sem{s_2}:\Prop\]
+\end{theo}
+\begin{prf}
+    Can be deduced from lemmas \ref{inc_trans} and \ref{eq_to_inc} and the rule
+    \texttt{IncAnti}.
+\end{prf}
+
+We must know make a similar development for maps. In order to do that, we must prove
+that lookup works well according to the logic.
+
+\begin{lem}{Correctness of lookup}\label{lookup_correct}
+    \[\forall m\text{ lisp map}, \forall k\in\S, \forall t\in\L,
+    \text{lookup}\ k\ m = v \iff \vdash \sem{m}\sem{k} = \sem{v}:\Prop \]
+\end{lem}
+\begin{prf}
+    Let's notive how \texttt{LookupEnd} and \texttt{LookupRec} define
+    $\sem{m}\sem{k}$ following exactly the same structure as lookup is defined.
+\end{prf}
+
+\begin{theo}{Map equality translation}\label{map_eq_trans}
+    \[\forall m_1\ m_2\text{ lisp map},
+    m_1 = m_2 \iff \vdash \sem{m_1} = \sem{m_2}: \Map\]
+\end{theo}
+\begin{prf}
+    Show that equality on the logic side means rewriting the map into a normal
+    form (ordered keys, every key appear et most once). In that case, syntactical
+    equality means same keys and same lookup values on those keys.
+\end{prf}
 
 
 \end{document}
