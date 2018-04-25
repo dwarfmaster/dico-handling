@@ -144,13 +144,13 @@ generateBind bind_name dico rid = do
         [ TUnit unitName
                 [ UnitE "meaning" $ SetOfPred  $ [
                     Predicate "frame" [ AnyLisp supFRVar
-                                      , AnyLisp $ AnyShow supName
+                                      , AnyLisp $ LispString supName
                                       , AnyLisp unitVar
                                       ]
                     ] <> fmap (\(_,lbl,sub,var) ->
                                 Predicate "fe" [ AnyLisp $ if sub then subFRVar
                                                                   else supFRVar
-                                               , AnyLisp $ AnyShow lbl
+                                               , AnyLisp $ LispString lbl
                                                , AnyLisp var
                                                ]
                              )
@@ -159,7 +159,7 @@ generateBind bind_name dico rid = do
         ]
         (let lock = UnitE "meaning" $ SetOfPred [
                      Predicate "frame" [ AnyLisp subFRVar
-                                       , AnyLisp $ AnyShow subName
+                                       , AnyLisp $ LispString subName
                                        , AnyLisp unitVar
                                        ]
                    ]
@@ -230,7 +230,7 @@ generateFrameLexUnit frame (LU name lid lexeme) =
         [ LUnit unit
           [ Hashm $ Hmeaning $ SetOfPred [
               Predicate "frame" [ AnyLisp $ Var $ "fr-" <> frame
-                                , AnyLisp $ AnyShow frame
+                                , AnyLisp $ LispString frame
                                 , AnyLisp unit
                                 ]
             ]

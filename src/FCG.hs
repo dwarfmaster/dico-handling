@@ -47,11 +47,9 @@ instance GenLisp LispExpr where
 instance IsString LispExpr where
     fromString = LispVar
 
-data AnyShow where
-    AnyShow :: Show a => a -> AnyShow
-deriving instance Show AnyShow
-instance GenLisp AnyShow where
-    toLisp (AnyShow x) = LispVar $ show x
+newtype LispString = LispString String
+instance GenLisp LispString where
+    toLisp (LispString str) = LispVar str
 
 data AnyLisp where
     AnyLisp :: GenLisp l => l -> AnyLisp
