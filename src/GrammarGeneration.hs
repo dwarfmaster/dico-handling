@@ -221,7 +221,12 @@ generateFrameLexUnit :: String -> LexUnit -> Construction
 generateFrameLexUnit frame (LU name lid lexeme) =
     Construction
         (uname <> "-" <> show lid <> "-cxn")
-        [ TUnit unit [] ]
+        [ TUnit unit []
+        , TUnit unitref [ UnitE "meaning-unit" unit
+                        , UnitE "first"        unit
+                        , UnitE "last"         unit
+                        ]
+        ]
         [ LUnit unit
           [ Hashm $ Hmeaning $ SetOfPred [
               Predicate "frame" [ AnyLisp $ Var $ "fr-" <> frame
@@ -232,8 +237,9 @@ generateFrameLexUnit frame (LU name lid lexeme) =
           ]
           [ Hashf $ Hstring unit lexeme ]
         ]
- where unit  = Var $ uname <> "-" <> show lid <> "-unit"
-       uname = unSpace name
+ where unit    = Var $ uname <> "-" <> show lid <> "-unit"
+       unitref = Var $ uname <> "-" <> show lid <> "-ref"
+       uname   = unSpace name
 
 
 --  ____                   _             
