@@ -307,13 +307,21 @@ lexemesFrames dico lexemes graph = concatMap ( (fmap $ frame_id . fromOdF)
                                              ccs
  where ccs :: [S.Set [OdF]]
        ccs = connectedFrom graph (const $ toFrames)
-                         $ fmap (idLex . lu_id)
-                         $ filter ((`elem` lexemes) . lu_lex)
-                         $ foldMap frame_lus
+                         $ fmap getId
+                         $ filter ((`elem` lexemes) . getName)
+                         $ foldMap extract
                          $ dico_frames dico
        toFrames :: DicoNode -> [OdF]
        toFrames (NdLex _ _) = []
        toFrames (NdFrame f) = [OdF f]
+       extract :: Frame -> [Either Frame LexUnit]
+       extract fr = Left fr : (fmap Right $ frame_lus fr)
+       getName :: Either Frame LexUnit -> String
+       getName (Left  fr) = frame_name fr
+       getName (Right lu) = lu_lex lu
+       getId :: Either Frame LexUnit -> DGId
+       getId (Left  fr) = idFrame $ frame_id fr
+       getId (Right lu) = idLex   $ lu_id    lu
 
 prune :: [String] -> Dictionnary -> Dictionnary
 prune lexemes dico = Dico dframes drels
