@@ -7,7 +7,7 @@
 module GrammarGeneration 
        ( generateRelationsScheme, generateLUs
        , generateGrammar, loadGrammarFromFramenet
-       , writeGrammar, framenetToFCG
+       , writeGrammar, writeSepGrammar, writeCxns, framenetToFCG
        , prunedFramenetToFCG
        ) where
 
@@ -347,14 +347,27 @@ writeGrammar path grammar = TIO.writeFile path
                           $ return
                           $ toLisp grammar
 
-framenetToFCG :: FilePath -> FilePath -> IO ()
-framenetToFCG framenetdir out = loadGrammarFromFramenet framenetdir
-                            >>= writeGrammar out
+writeSepGrammar :: FilePath -> Grammar -> IO ()
+writeSepGrammar path (Grammar g cxns) = TIO.writeFile path
+                                      $ print_lisp
+                                      $ toLisp (Grammar g [])
+                                      : fmap toLisp cxns
 
-prunedFramenetToFCG :: [String] -> FilePath -> FilePath -> IO ()
-prunedFramenetToFCG lexemes framenetdir out = do
+writeCxns :: FilePath -> Grammar -> IO ()
+writeCxns path (Grammar _ cxns) = TIO.writeFile path
+                                $ print_lisp
+                                $ fmap toLisp cxns
+
+type Writer = FilePath -> Grammar -> IO ()
+
+framenetToFCG :: FilePath -> FilePath -> Writer -> IO ()
+framenetToFCG framenetdir out wr = loadGrammarFromFramenet framenetdir
+                               >>= wr out
+
+prunedFramenetToFCG :: [String] -> FilePath -> FilePath -> Writer -> IO ()
+prunedFramenetToFCG lexemes framenetdir out wr = do
     dico'    <- framenetDictionnary framenetdir
     let dico = prune lexemes dico'
     grammar  <- generateGrammar dico
-    writeGrammar out grammar
+    wr out grammar
 
