@@ -344,6 +344,7 @@ loadGrammarFromFramenet = framenetDictionnary >=> generateGrammar
 writeGrammar :: FilePath -> Grammar -> IO ()
 writeGrammar path grammar = TIO.writeFile path
                           $ print_lisp
+                          $ return
                           $ toLisp grammar
 
 framenetToFCG :: FilePath -> FilePath -> IO ()

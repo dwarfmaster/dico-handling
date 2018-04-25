@@ -7,6 +7,7 @@ module FCG where
 
 import           Data.Monoid
 import           Data.String
+import           Data.List              (intersperse)
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy         as T
 
@@ -21,8 +22,8 @@ depth (LispLst x l)  = (+) 1 $ max (depth x) $ maximum $ map depth l
 depth (LispQuote l)  = depth l
 depth (LispVar _)    = 0
 
-print_lisp :: LispExpr -> T.Text
-print_lisp = TB.toLazyText . (print_lisp' 0)
+print_lisp :: [LispExpr] -> T.Text
+print_lisp = TB.toLazyText . mconcat . intersperse "\n" . fmap (print_lisp' 0)
 
 print_lisp' :: Int -> LispExpr -> TB.Builder
 print_lisp' sft (LispLst name [])     = "(" <> print_lisp' sft name <> ")"
