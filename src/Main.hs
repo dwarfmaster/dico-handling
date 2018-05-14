@@ -16,5 +16,5 @@ out          = "grammar.lisp"
 pruning      = ["good"]
 
 main :: IO ()
-main = prunedFramenetToFCG pruning framenetpath out
+main = prunedFramenetToFCG pruning framenetpath out writeCxns
 
