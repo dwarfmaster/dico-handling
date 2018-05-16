@@ -6,32 +6,12 @@
 #include <nodes/DataModelRegistry>
 #include <nodes/ConnectionStyle>
 
-#include "models.hpp"
+#include "frameModel.hpp"
 
 using QtNodes::DataModelRegistry;
 using QtNodes::FlowScene;
 using QtNodes::FlowView;
 using QtNodes::ConnectionStyle;
-
-static std::shared_ptr<DataModelRegistry>
-registerDataModels()
-{
-  auto ret = std::make_shared<DataModelRegistry>();
-
-  ret->registerModel<NaiveDataModel>();
-
-  /*
-     We could have more models registered.
-     All of them become items in the context meny of the scene.
-
-     ret->registerModel<AnotherDataModel>();
-     ret->registerModel<OneMoreDataModel>();
-
-   */
-
-  return ret;
-}
-
 
 static
 void
@@ -54,10 +34,19 @@ int
 main(int argc, char* argv[])
 {
   QApplication app(argc, argv);
+  Frame fr("Entity");
+  fr.addFe("Entity");
+  fr.addFe("Constituent_parts");
+  fr.addFe("Formational_cause");
+  fr.addFe("Name");
+  fr.addFe("Type");
 
   setStyle();
 
-  FlowScene scene(registerDataModels());
+  FlowScene scene;
+  auto& node1 = scene.createNode(std::unique_ptr<NodeDataModel>(new FrameModel(&fr)));
+  auto& node2 = scene.createNode(std::unique_ptr<NodeDataModel>(new FrameModel(&fr)));
+  scene.createConnection(node1, 0, node2, 3);
 
   FlowView view(&scene);
 

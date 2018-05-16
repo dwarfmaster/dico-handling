@@ -14,7 +14,9 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CPP_SOURCE_FILES
     src/main.cpp
-    src/models.cpp)
+    src/frames.cpp
+    src/feData.cpp
+    src/frameModel.cpp)
 
 include_directories(nodeeditor/include)
 add_executable(frameAnnotator ${CPP_SOURCE_FILES})
