@@ -1,6 +1,6 @@
 
 #include "frames.hpp"
-
+#include <algorithm>
 
 Frame::Frame(const std::string& name) : m_name (name) { }
 
@@ -11,7 +11,7 @@ std::string Frame::name() const {
 
 
 void Frame::addFe(const std::string& name) {
-    m_fes.insert(name);
+    if(std::find(m_fes.begin(), m_fes.end(), name) == m_fes.end()) m_fes.push_back(name);
 }
 
 
@@ -39,4 +39,7 @@ Frame::const_iterator Frame::fe_end() const {
     return m_fes.end();
 }
 
+const std::string& Frame::operator[](size_t i) const {
+    return m_fes[i];
+}
 

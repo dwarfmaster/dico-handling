@@ -16,8 +16,15 @@ std::shared_ptr<NodeData> FrameModel::outData(PortIndex port)  {
     return std::shared_ptr<NodeData>(new FeData);
 }
 
+QString FrameModel::portCaption(PortType portType, PortIndex portIndex) const {
+    if(portType == PortType::In && portIndex < m_fr->nbFes()) {
+        return QString((*m_fr)[portIndex].c_str());
+    }
+    return QString();
+}
 
 void FrameModel::setInData(std::shared_ptr<NodeData> nodeData, PortIndex port)  {
+    /* Nothing to do */
 }
 
 

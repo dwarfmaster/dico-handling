@@ -39,6 +39,11 @@ class FrameModel : public NodeDataModel
 
         NodeDataType dataType(PortType portType, PortIndex portIndex) const override;
 
+        QString portCaption(PortType portType, PortIndex portIndex) const override;
+
+        bool portCaptionVisible(PortType, PortIndex ) const override
+        { return true; }
+
         std::shared_ptr<NodeData> outData(PortIndex port) override;
 
         void setInData(std::shared_ptr<NodeData> nodeData, PortIndex port) override;
