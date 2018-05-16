@@ -1,0 +1,3 @@
+[submodule "interface/nodeeditor"]
+	path = interface/nodeeditor
+	url = https://github.com/lucas8/nodeeditor.git
