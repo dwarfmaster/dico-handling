@@ -1,12 +1,16 @@
 
 ;; The problem ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defclass unknown-words-problem (problem) ())
+(defclass unknown-entity-problem    (problem) ())
+(defclass unknown-attribute-problem (problem) ())
 
 ;; The diagnostic ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-(defclass diagnose-unknown-words (diagnostic)
+(defclass diagnose-unknown-entity (diagnostic)
+  ((trigger :initform 'new-node)))
+(defclass diagnose-unknown-attribute (diagnostic)
   ((trigger :initform 'new-node)))
 
-(defmethod diagnose ((diagnostic diagnose-unknown-words) (node cip-node)
+;; TODO factor the following two methods
+(defmethod diagnose ((diagnostic diagnose-unknown-entity) (node cip-node)
                      &key &allow-other-keys)
   "Check if there are still words in ROOT in a fully expanded node"
   (when (fully-expanded? node)
@@ -14,7 +18,19 @@
                                                (left-pole-structure
                                                  (car-resulting-cfs (cipn-car node)))))))
       (when strings-in-root
-        (let ((problem (make-instance 'unknown-words-problem)))
+        (let ((problem (make-instance 'unknown-entity-problem)))
+          (set-data problem 'strings strings-in-root)
+          problem)))))
+
+(defmethod diagnose ((diagnostic diagnose-unknown-attribute) (node cip-node)
+                     &key &allow-other-keys)
+  "Check if there are still words in ROOT in a fully expanded node"
+  (when (fully-expanded? node)
+    (let ((strings-in-root (get-strings (assoc 'root
+                                               (left-pole-structure
+                                                 (car-resulting-cfs (cipn-car node)))))))
+      (when strings-in-root
+        (let ((problem (make-instance 'unknown-attribute-problem)))
           (set-data problem 'strings strings-in-root)
           problem)))))
 
@@ -23,7 +39,7 @@
   ((trigger :initform 'new-node)))
 
 (defmethod repair ((repair  unknown-word-is-entity)
-                   (problem unknown-words-problem)
+                   (problem unknown-entity-problem)
                    (node    cip-node)
                    &key &allow-other-keys)
   (let ((uw (first (get-data problem 'strings))))
@@ -58,7 +74,7 @@
   ((trigger :initform 'new-node)))
 
 (defmethod repair ((repair  unknown-word-is-attribute)
-                   (problem unknown-words-problem)
+                   (problem unknown-attribute-problem)
                    (node    cip-node)
                    &key &allow-other-keys)
   (let ((uw (first (get-data problem 'strings))))
