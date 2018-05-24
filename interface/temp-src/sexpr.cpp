@@ -2,17 +2,83 @@
 #include "sexpr.hpp"
 #include <sstream>
 #include <cstdio>
+#include <iostream>
+
+
+//  ___ ____  _                            ____                _           
+// |_ _/ ___|| |_ _ __ ___  __ _ _ __ ___ |  _ \ ___  __ _  __| | ___ _ __ 
+//  | |\___ \| __| '__/ _ \/ _` | '_ ` _ \| |_) / _ \/ _` |/ _` |/ _ \ '__|
+//  | | ___) | |_| | |  __/ (_| | | | | | |  _ <  __/ (_| | (_| |  __/ |   
+// |___|____/ \__|_|  \___|\__,_|_| |_| |_|_| \_\___|\__,_|\__,_|\___|_|   
+//                                                                         
+
+IStreamReader::IStreamReader(std::istream* input)
+    : m_input(input)
+    {}
+
+IStreamReader::~IStreamReader() {
+    /* Nothing to do */
+}
+
+std::streamsize IStreamReader::read(char* buffer, std::streamsize size) {
+    m_input->read(buffer, size);
+    return m_input->gcount();
+}
+
+IStreamReader::operator bool() {
+    return static_cast<bool>(*m_input);
+}
+
+bool IStreamReader::operator!() {
+    return !static_cast<bool>(*this);
+}
+
+
+//  ____  _        _             ____                _           
+// / ___|| |_ _ __(_)_ __   __ _|  _ \ ___  __ _  __| | ___ _ __ 
+// \___ \| __| '__| | '_ \ / _` | |_) / _ \/ _` |/ _` |/ _ \ '__|
+//  ___) | |_| |  | | | | | (_| |  _ <  __/ (_| | (_| |  __/ |   
+// |____/ \__|_|  |_|_| |_|\__, |_| \_\___|\__,_|\__,_|\___|_|   
+//                         |___/                                 
+
+StringReader::StringReader(const std::string& str)
+    : m_sstring(new std::istringstream(str)), m_rd(m_sstring)
+    { }
+
+StringReader::~StringReader() {
+    delete m_sstring;
+}
+
+std::streamsize StringReader::read(char* buffer, std::streamsize size) {
+    return m_rd.read(buffer, size);
+}
+
+StringReader::operator bool() {
+    return m_rd; 
+}
+
+bool StringReader::operator!() {
+    return !m_rd;
+}
+
+
+//  ____  _____                 ____                          
+// / ___|| ____|_  ___ __  _ __|  _ \ __ _ _ __ ___  ___ _ __ 
+// \___ \|  _| \ \/ / '_ \| '__| |_) / _` | '__/ __|/ _ \ '__|
+//  ___) | |___ >  <| |_) | |  |  __/ (_| | |  \__ \  __/ |   
+// |____/|_____/_/\_\ .__/|_|  |_|   \__,_|_|  |___/\___|_|   
+//                  |_|                                       
 
 SExprParser::SExprParser(const std::string& str) 
-    : m_input(new std::istringstream(str)), m_free_input(true)
+    : m_input(new StringReader(str)), m_free_input(true)
     {}
         
-SExprParser::SExprParser(std::istream& input)
-    : m_input(&input), m_free_input(false)
-    {}
-
 SExprParser::SExprParser(std::istream* input)
-    : m_input(input), m_free_input(false)
+    : m_input(new IStreamReader(input)), m_free_input(true)
+    {}
+        
+SExprParser::SExprParser(Reader* rd)
+    : m_input(rd), m_free_input(false)
     {}
 
 SExprParser::~SExprParser() {
@@ -40,8 +106,8 @@ void SExprParser::read(SExpr& expr) {
 
     bool expr_filled = false;
     while(!expr_filled && m_input) {
-        m_input->read(buf, bufsize);
-        for(std::streamsize i = 0; i < m_input->gcount(); ++i) {
+        std::streamsize count = m_input->read(buf, bufsize);
+        for(std::streamsize i = 0; i < count; ++i) {
             char c = buf[i];
             switch(c) {
                 case '(':
@@ -92,6 +158,14 @@ SExprParser::operator bool() const {
 bool SExprParser::operator!() const {
     return !static_cast<bool>(*this);
 }
+
+
+//  ____  _     _     _   
+// / ___|| |   (_)___| |_ 
+// \___ \| |   | / __| __|
+//  ___) | |___| \__ \ |_ 
+// |____/|_____|_|___/\__|
+//                        
 
 SList::SList() {
     /* Nothing to do */

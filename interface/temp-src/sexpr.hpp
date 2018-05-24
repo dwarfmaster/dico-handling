@@ -12,12 +12,51 @@
 class SList;
 using SExpr = boost::variant<std::shared_ptr<SList>,std::string>;
 
+class Reader {
+    public:
+        Reader() {}
+        virtual ~Reader() {}
+
+        virtual std::streamsize read(char* buffer, std::streamsize size) = 0;
+        virtual operator bool() = 0;
+        virtual bool operator!() = 0;
+};
+
+class IStreamReader : public Reader {
+    public:
+        IStreamReader() = delete;
+        IStreamReader(std::istream* input);
+        ~IStreamReader();
+
+        std::streamsize read(char* buffer, std::streamsize size) override;
+        operator bool() override;
+        bool operator!() override;
+
+    private:
+        std::istream* m_input;
+};
+
+class StringReader : public Reader {
+    public:
+        StringReader() = delete;
+        StringReader(const std::string& str);
+        ~StringReader();
+
+        std::streamsize read(char* buffer, std::streamsize size) override;
+        operator bool() override;
+        bool operator!() override;
+
+    private:
+        std::istringstream* m_sstring;
+        IStreamReader m_rd;
+};
+
 class SExprParser {
     public:
         SExprParser() = delete;
         SExprParser(const std::string& str);
-        SExprParser(std::istream& input);
         SExprParser(std::istream* input);
+        SExprParser(Reader* rd);
         ~SExprParser();
 
         void read(SExpr& expr);
@@ -31,7 +70,7 @@ class SExprParser {
         std::queue<SExpr> m_parsed;
         std::vector<SList*> m_stack;
         std::string m_symbol;
-        std::istream* m_input;
+        Reader* m_input;
         bool m_free_input;
 };
 
