@@ -90,3 +90,26 @@ class SList {
 
 std::ostream& operator<<(std::ostream& os, const SExpr& expr);
 
+template <typename T, typename Fstring, typename Flist>
+class map_visitor : public boost::static_visitor<T> {
+    Fstring& m_fstring;
+    Flist&   m_flist;
+    public:
+        map_visitor(Fstring& fstring, Flist& flist)
+            : m_fstring(fstring), m_flist(flist)
+            {}
+
+        T operator()(const std::string& str) const {
+            return m_fstring(str);
+        }
+
+        T operator()(std::shared_ptr<SList> lst) const {
+            return m_flist(lst);
+        }
+};
+
+template <typename T, typename Fstring, typename Flist>
+T sexpr_map(Fstring fstring, Flist flist, const SExpr& expr) {
+    return boost::apply_visitor(map_visitor<T,Fstring,Flist>(fstring, flist), expr);
+}
+
