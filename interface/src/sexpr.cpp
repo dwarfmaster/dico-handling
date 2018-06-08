@@ -196,7 +196,8 @@ class expr_printer : public boost::static_visitor<> {
         void operator()(const std::shared_ptr<SList>& lst) const {
             m_os << "(";
             for(size_t i = 0; i < lst->childrens(); ++i) {
-                boost::apply_visitor(*this, (*lst)[i]);
+                SExpr e = (*lst)[i];
+                boost::apply_visitor(*this, e);
                 m_os << " ";
             }
             m_os << ")";
