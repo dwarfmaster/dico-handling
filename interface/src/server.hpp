@@ -3,6 +3,7 @@
 
 #include <string>
 #include <boost/asio.hpp>
+#include <boost/optional.hpp>
 #include "sexpr.hpp"
 
 class Server {
@@ -11,18 +12,19 @@ class Server {
         Server(int port);
         ~Server();
 
-        void receive(SExpr& expr);
+        /* Non-blocking read */
+        bool receive(SExpr& expr, std::chrono::milliseconds timeout);
         Server& operator>>(SExpr& expr);
         void send(const SExpr& expr);
         Server& operator<<(const SExpr& expr);
 
     private:
-        void open_stream();
+        bool open_stream(bool reset = false);
         boost::asio::io_service m_ios;
         boost::asio::ip::tcp::endpoint m_endpoint;
         boost::asio::ip::tcp::acceptor m_acceptor;
         boost::asio::ip::tcp::socket*  m_socket;
         Reader* m_reader;
-        SExprParser* m_parser;
+        boost::optional<SExprParser> m_parser;
 };
 

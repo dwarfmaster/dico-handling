@@ -1,35 +1,51 @@
 
 #include "sexpr.hpp"
-#include <sstream>
 #include <cstdio>
+#include <cstring>
 #include <iostream>
 
+#include <unistd.h>
+#include <fcntl.h>
+#include <poll.h>
 
-//  ___ ____  _                            ____                _           
-// |_ _/ ___|| |_ _ __ ___  __ _ _ __ ___ |  _ \ ___  __ _  __| | ___ _ __ 
-//  | |\___ \| __| '__/ _ \/ _` | '_ ` _ \| |_) / _ \/ _` |/ _` |/ _ \ '__|
-//  | | ___) | |_| | |  __/ (_| | | | | | |  _ <  __/ (_| | (_| |  __/ |   
-// |___|____/ \__|_|  \___|\__,_|_| |_| |_|_| \_\___|\__,_|\__,_|\___|_|   
-//                                                                         
+using namespace std::chrono_literals;
 
-IStreamReader::IStreamReader(std::istream* input)
+//  _   _       _      _____ ____  ____                _           
+// | | | |_ __ (_)_  _|  ___|  _ \|  _ \ ___  __ _  __| | ___ _ __ 
+// | | | | '_ \| \ \/ / |_  | | | | |_) / _ \/ _` |/ _` |/ _ \ '__|
+// | |_| | | | | |>  <|  _| | |_| |  _ <  __/ (_| | (_| |  __/ |   
+//  \___/|_| |_|_/_/\_\_|   |____/|_| \_\___|\__,_|\__,_|\___|_|   
+//                                                                 
+
+UnixFDReader::UnixFDReader(int input)
     : m_input(input)
     {}
 
-IStreamReader::~IStreamReader() {
+UnixFDReader::~UnixFDReader() {
     /* Nothing to do */
 }
 
-std::streamsize IStreamReader::read(char* buffer, std::streamsize size) {
-    m_input->read(buffer, size);
-    return m_input->gcount();
+std::streamsize UnixFDReader::read(char* buffer, std::streamsize size, timeout_t timeout) {
+    pollfd pfd;
+
+    if(timeout.count() == 0) {
+        return ::read(m_input, buffer, size);
+    }
+
+    pfd.fd = m_input;
+    pfd.events = POLLIN;
+    poll(&pfd, 1, timeout.count());
+    if(pfd.revents & POLLIN) {
+        return ::read(m_input, buffer, size);
+    }
+    return 0;
 }
 
-IStreamReader::operator bool() {
-    return static_cast<bool>(*m_input);
+UnixFDReader::operator bool() {
+    return static_cast<bool>(fcntl(m_input, F_GETFD) != -1 || errno != EBADF);
 }
 
-bool IStreamReader::operator!() {
+bool UnixFDReader::operator!() {
     return !static_cast<bool>(*this);
 }
 
@@ -42,23 +58,28 @@ bool IStreamReader::operator!() {
 //                         |___/                                 
 
 StringReader::StringReader(const std::string& str)
-    : m_sstring(new std::istringstream(str)), m_rd(m_sstring)
+    : m_str(str), m_pos(0)
     { }
 
 StringReader::~StringReader() {
-    delete m_sstring;
+    /* Nothing to do */
 }
 
-std::streamsize StringReader::read(char* buffer, std::streamsize size) {
-    return m_rd.read(buffer, size);
+std::streamsize StringReader::read(char* buffer, std::streamsize size, timeout_t timeout) {
+    if(m_pos >= m_str.size()) return 0;
+
+    size_t cpsize = std::min(static_cast<size_t>(size), m_str.size() - m_pos);
+    std::memcpy(buffer, m_str.c_str(), cpsize);
+    m_pos += cpsize;
+    return cpsize;
 }
 
 StringReader::operator bool() {
-    return m_rd; 
+    return m_pos >= m_str.size(); 
 }
 
 bool StringReader::operator!() {
-    return !m_rd;
+    return !static_cast<bool>(*this);
 }
 
 
@@ -73,8 +94,8 @@ SExprParser::SExprParser(const std::string& str)
     : m_input(new StringReader(str)), m_free_input(true)
     {}
         
-SExprParser::SExprParser(std::istream* input)
-    : m_input(new IStreamReader(input)), m_free_input(true)
+SExprParser::SExprParser(int input)
+    : m_input(new UnixFDReader(input)), m_free_input(true)
     {}
         
 SExprParser::SExprParser(Reader* rd)
@@ -93,7 +114,7 @@ void SExprParser::pop_symbol(SList* lst) {
     m_symbol.clear();
 }
 
-void SExprParser::read(SExpr& expr) {
+bool SExprParser::read(SExpr& expr, std::chrono::milliseconds timeout) {
     const size_t bufsize = 256;
     char buf[bufsize];
     SList* lst;
@@ -101,53 +122,52 @@ void SExprParser::read(SExpr& expr) {
     if(!m_parsed.empty()) {
         expr = m_parsed.front();
         m_parsed.pop();
-        return;
+        return true;
     }
 
     bool expr_filled = false;
-    while(!expr_filled && m_input) {
-        std::streamsize count = m_input->read(buf, bufsize);
-        for(std::streamsize i = 0; i < count; ++i) {
-            char c = buf[i];
-            switch(c) {
-                case '(':
-                    m_stack.push_back(new SList);
-                    break;
-                case ')':
-                    lst = m_stack.back();
-                    m_stack.pop_back();
-                    pop_symbol(lst);
-                    if(m_stack.empty()) {
-                        if(expr_filled) m_parsed.push(std::shared_ptr<SList>(lst));
-                        else {
-                            expr = std::shared_ptr<SList>(lst);
-                            expr_filled = true;
-                        }
-                    } else {
-                        m_stack.back()->m_childrens.push_back(std::shared_ptr<SList>(lst));
+    std::streamsize count = m_input->read(buf, bufsize, timeout);
+    for(std::streamsize i = 0; i < count; ++i) {
+        char c = buf[i];
+        switch(c) {
+            case '(':
+                m_stack.push_back(new SList);
+                break;
+            case ')':
+                lst = m_stack.back();
+                m_stack.pop_back();
+                pop_symbol(lst);
+                if(m_stack.empty()) {
+                    if(expr_filled) m_parsed.push(std::shared_ptr<SList>(lst));
+                    else {
+                        expr = std::shared_ptr<SList>(lst);
+                        expr_filled = true;
                     }
-                    break;
-                case ' ': case '\t': case '\n':
-                    if(m_stack.empty()) {
-                        if(m_symbol.empty()) continue;
-                        if(expr_filled) m_parsed.push(m_symbol);
-                        else {
-                            expr = m_symbol;
-                            expr_filled = true;
-                        }
-                        m_symbol.clear();
-                    } else pop_symbol(m_stack.back());
-                    break;
-                default:
-                    m_symbol.push_back(c);
-                    break;
-            }
+                } else {
+                    m_stack.back()->m_childrens.push_back(std::shared_ptr<SList>(lst));
+                }
+                break;
+            case ' ': case '\t': case '\n':
+                if(m_stack.empty()) {
+                    if(m_symbol.empty()) continue;
+                    if(expr_filled) m_parsed.push(m_symbol);
+                    else {
+                        expr = m_symbol;
+                        expr_filled = true;
+                    }
+                    m_symbol.clear();
+                } else pop_symbol(m_stack.back());
+                break;
+            default:
+                m_symbol.push_back(c);
+                break;
         }
     }
+    return expr_filled;
 }
 
 SExprParser& SExprParser::operator>>(SExpr& expr) {
-    read(expr);
+    while(!read(expr, 0ms));
     return *this;
 }
 

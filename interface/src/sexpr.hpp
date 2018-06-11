@@ -6,6 +6,7 @@
 #include <memory>
 #include <istream>
 #include <ostream>
+#include <chrono>
 #include <queue>
 #include <boost/variant.hpp>
 
@@ -14,26 +15,28 @@ using SExpr = boost::variant<std::shared_ptr<SList>,std::string>;
 
 class Reader {
     public:
+        using timeout_t = std::chrono::milliseconds;
         Reader() {}
         virtual ~Reader() {}
 
-        virtual std::streamsize read(char* buffer, std::streamsize size) = 0;
+        /* Read is blocking with timeout = 0 */
+        virtual std::streamsize read(char* buffer, std::streamsize size, timeout_t timeout) = 0;
         virtual operator bool() = 0;
         virtual bool operator!() = 0;
 };
 
-class IStreamReader : public Reader {
+class UnixFDReader : public Reader {
     public:
-        IStreamReader() = delete;
-        IStreamReader(std::istream* input);
-        ~IStreamReader();
+        UnixFDReader() = delete;
+        UnixFDReader(int input);
+        ~UnixFDReader();
 
-        std::streamsize read(char* buffer, std::streamsize size) override;
+        std::streamsize read(char* buffer, std::streamsize size, timeout_t timeout) override;
         operator bool() override;
         bool operator!() override;
 
     private:
-        std::istream* m_input;
+        int m_input;
 };
 
 class StringReader : public Reader {
@@ -42,24 +45,28 @@ class StringReader : public Reader {
         StringReader(const std::string& str);
         ~StringReader();
 
-        std::streamsize read(char* buffer, std::streamsize size) override;
+        std::streamsize read(char* buffer, std::streamsize size, timeout_t timeout) override;
         operator bool() override;
         bool operator!() override;
 
     private:
-        std::istringstream* m_sstring;
-        IStreamReader m_rd;
+        std::string m_str;
+        size_t m_pos;
 };
 
 class SExprParser {
     public:
         SExprParser() = delete;
         SExprParser(const std::string& str);
-        SExprParser(std::istream* input);
+        SExprParser(int input);
         SExprParser(Reader* rd);
         ~SExprParser();
 
-        void read(SExpr& expr);
+        /* Returns true if it could read one, false otherwise
+         * Blocking if timeout = 0
+         */
+        bool read(SExpr& expr, std::chrono::milliseconds timeout);
+        /* Blocking version of read, always succeeds */
         SExprParser& operator>>(SExpr& expr);
         operator bool() const;
         bool operator!() const;
