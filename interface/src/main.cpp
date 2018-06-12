@@ -14,6 +14,7 @@
 #include "sexpr.hpp"
 #include "server.hpp"
 #include "framegraph.hpp"
+#include "frameScene.hpp"
 
 using namespace std::chrono_literals;
 
@@ -87,16 +88,11 @@ main(int argc, char* argv[])
 
   setStyle();
 
-  FlowScene scene;
-  auto& node1 = scene.createNode(std::unique_ptr<NodeDataModel>(new FrameModel(&fr)));
-  auto& node2 = scene.createNode(std::unique_ptr<NodeDataModel>(new FrameModel(&fr)));
-  scene.createConnection(node1, 0, node2, 3);
+  FrameScene scene;
 
-  FlowView view(&scene);
-
-  view.setWindowTitle("Node-based flow editor");
-  view.resize(800, 600);
-  view.show();
+  scene.setWindowTitle("Node-based flow editor");
+  scene.resize(800, 600);
+  scene.show();
 
   Server server(4444);
   SExpr expr;
@@ -104,23 +100,7 @@ main(int argc, char* argv[])
   while(true) {
       app.processEvents();
       if(server.receive(expr, 16ms)) {
-          FrameGraph<std::string,std::string> frameGraph(expr,
-                  [] (const std::string& name, const std::vector<std::string>& fes) {
-                      std::map<std::string,std::string> mp;
-                      for(auto fe : fes) { mp[fe] = fe; }
-                      return FrameGraph<std::string,std::string>::Frame {
-                          .name = name,
-                          .node = name,
-                          .fes  = mp
-                      };
-                  });
-          for(auto cc_it = frameGraph.ccbegin(); cc_it != frameGraph.ccend(); ++cc_it) {
-              for(auto pid : *cc_it) {
-                  std::cout << pid.node << "->" << pid.place << std::endl;
-              }
-              std::cout << "**************************" << std::endl;
-          }
-          std::cout << "-------------------------" << std::endl;
+          scene.reset(expr);
       }
   }
 
