@@ -21,7 +21,9 @@ set(CPP_SOURCE_FILES
     src/feData.cpp
     src/sexpr.cpp
     src/server.cpp
-    src/frameModel.cpp)
+    src/frameModel.cpp
+    src/framegraph.cpp
+    src/frameScene.cpp)
 
 include_directories(nodeeditor/include)
 include_directories(${Boost_INCLUDE_DIRS})
