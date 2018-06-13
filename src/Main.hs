@@ -6,15 +6,17 @@ module Main where
 
 import DicoXml
 import DicoFrames
-import Drawing
 import FrameNet
 import FCG
 import GrammarGeneration
+import FrameJSON
+import qualified Data.Text.Lazy.IO as TIO
 
 framenetpath = "/home/luc/school/ens/annee2/s2/code/framenet/fndata-1.6/"
-out          = "grammar.lisp"
-pruning      = ["good"]
+out          = "lexicon.lisp"
+pruning      = ["green", "boat"]
 
 main :: IO ()
-main = prunedFramenetToFCG pruning framenetpath out writeCxns
+main = framenetDictionnary framenetpath
+   >>= TIO.writeFile "grammar.json" . dicoJSON
 

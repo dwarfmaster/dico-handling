@@ -1,14 +1,12 @@
-{ nixpkgs ? import <nixpkgs> {}, compiler ? "ghc802" }:
+{ nixpkgs ? import <nixpkgs> {}, compiler ? "default", doBenchmark ? false }:
 
 let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, array, base, containers, diagrams
-      , diagrams-cairo, diagrams-contrib, diagrams-core, diagrams-lib
-      , diagrams-solve, diagrams-svg, hxt, diagrams-graphviz
-      , graphviz, stdenv, transformers, directory, text, fgl
-      , linear
+  f = { mkDerivation, array, ast-monad, ast-monad-json, base, containers
+      , directory, fgl, graphviz, hxt, linear, mtl, stdenv, text
+      , transformers
       }:
       mkDerivation {
         pname = "ling";
@@ -17,13 +15,11 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          array base containers diagrams diagrams-cairo diagrams-contrib
-          diagrams-core diagrams-lib diagrams-solve diagrams-svg hxt
-          diagrams-graphviz graphviz transformers directory text fgl
-          linear
+          array ast-monad-json base containers directory fgl graphviz hxt
+          linear mtl text transformers ast-monad
         ];
         buildDepends = with pkgs; [
-          cabal-install graphviz
+          graphviz cabal-install
         ];
         license = stdenv.lib.licenses.mit;
       };
@@ -32,7 +28,9 @@ let
                        then pkgs.haskellPackages
                        else pkgs.haskell.packages.${compiler};
 
-  drv = haskellPackages.callPackage f {};
+  variant = if doBenchmark then pkgs.haskell.lib.doBenchmark else pkgs.lib.id;
+
+  drv = variant (haskellPackages.callPackage f {});
 
 in
 
