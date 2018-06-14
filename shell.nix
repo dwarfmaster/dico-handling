@@ -4,9 +4,8 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, array, ast-monad, ast-monad-json, base, containers
-      , directory, fgl, graphviz, hxt, linear, mtl, stdenv, text
-      , transformers
+  f = { mkDerivation, array, base, containers, directory, fgl
+      , graphviz, hxt, json, linear, mtl, stdenv, text, transformers
       }:
       mkDerivation {
         pname = "ling";
@@ -15,8 +14,8 @@ let
         isLibrary = false;
         isExecutable = true;
         executableHaskellDepends = [
-          array ast-monad-json base containers directory fgl graphviz hxt
-          linear mtl text transformers ast-monad
+          array base containers directory fgl graphviz hxt json linear mtl
+          text transformers
         ];
         buildDepends = with pkgs; [
           graphviz cabal-install

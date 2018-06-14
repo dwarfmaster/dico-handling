@@ -1,27 +1,31 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
 
 module FrameJSON (dicoJSON) where
 
-import           Language.ASTMonad
-import           Language.ASTMonad.Json
-import           Language.ASTMonad.Json.Renderer
-import qualified Data.Text.Lazy         as T
-import qualified Data.Text.Lazy.Builder as TB
+import           Text.JSON
+import qualified Data.Text.Lazy as T
 import           FrameNet
-import qualified Data.Map               as M
+import qualified Data.Map       as M
+
+data AnyJSON where
+    AnyJSON :: JSON a => a -> AnyJSON
+instance JSON AnyJSON where
+    readJSON jsv = fmap AnyJSON $ (readJSON jsv :: Result String)
+    showJSON (AnyJSON x) = showJSON x
 
 dicoJSON :: Dictionnary -> T.Text
-dicoJSON dico = TB.toLazyText $ renderJson $ buildAST jsonDico dico JsonEnvironment
+dicoJSON = T.pack . encode . toJSON
 
-jsonDico :: Json Dictionnary
-jsonDico = sequence_ . map jsonFrame
-       =<< getParam (M.elems . dico_frames) 
+toJSON :: Dictionnary -> [JSObject AnyJSON]
+toJSON = map frameJSON . M.elems . dico_frames
 
-jsonFrame :: Frame -> Json a
-jsonFrame (Frame name _ fes _ _) = "frame" `isArray` do
-    "name" `is` (TB.fromString name)
-    sequence_ $ map jsonFE fes
+frameJSON :: Frame -> JSObject AnyJSON
+frameJSON (Frame name _ fes _ _) = toJSObject
+                                 [ ("name", AnyJSON name)
+                                 , ("fes", feJSON fes)
+                                 ]
 
-jsonFE :: FE -> Json a
-jsonFE (FE name _ _ _) = "fe" `is` (TB.fromString name)
+feJSON :: [FE] -> AnyJSON
+feJSON = AnyJSON . map fe_name
 
