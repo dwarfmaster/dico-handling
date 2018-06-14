@@ -23,6 +23,7 @@ set(CPP_SOURCE_FILES
     src/server.cpp
     src/frameModel.cpp
     src/framegraph.cpp
+    src/framedico.cpp
     src/frameScene.cpp)
 
 include_directories(nodeeditor/include)

@@ -15,6 +15,7 @@
 #include "server.hpp"
 #include "framegraph.hpp"
 #include "frameScene.hpp"
+#include "framedico.hpp"
 
 using namespace std::chrono_literals;
 
@@ -78,6 +79,7 @@ setStyle()
 int
 main(int argc, char* argv[])
 {
+  FrameDico fdico("grammar.json");
   QApplication app(argc, argv);
   Frame fr("Entity");
   fr.addFe("Entity");
