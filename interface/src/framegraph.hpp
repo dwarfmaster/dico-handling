@@ -1,6 +1,7 @@
 
 #pragma once
 
+#include <iostream>
 #include <string>
 #include <vector>
 #include <map>
@@ -8,6 +9,7 @@
 #include <list>
 #include <boost/algorithm/string.hpp>
 #include "sexpr.hpp"
+#include "framedico.hpp"
 
 
 
@@ -123,14 +125,15 @@ void FrameGraph<Node,Place>::bind(typename FrameGraph<Node,Place>::PlaceId id1,
 namespace internal {
     using namespace std;
     // Map from frame variable name to frame name and list of fes
-    using temp_frames_t = map<string, pair<string, vector<string>>>;
+    using temp_frames_t = map<string, vector<pair<string, vector<string>>>>;
     // Map from fe variable to the according set
     template <typename Node, typename Place>
     using temp_connections_t = map<string, set<typename FrameGraph<Node,Place>::PlaceId>>;
 
     string read_string_from_sexpr(const SExpr& expr);
     shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr);
-    void parse_a_meaning(shared_ptr<SList> lst, temp_frames_t& temp_frames);
+    void parse_a_meaning(shared_ptr<SList> lst, temp_frames_t& temp_frames,
+            FrameDico* dico);
 
     template <typename Node, typename Place>
     void connect(shared_ptr<SList> lst, temp_connections_t<Node,Place>& temp_conn,
@@ -148,17 +151,21 @@ namespace internal {
         if(meaning_ident == "frame") return;
 
         typename FrameGraph<Node,Place>::PlaceId pid;
-        string frame_name = std::get<0>(temp_frames[frame_var]);
-        const typename FrameGraph<Node,Place>::Frame& frame
-            = *find_if(frames.begin(), frames.end(),
-                [&frame_name](const typename FrameGraph<Node,Place>::Frame& fr)
-                             { return fr.name == frame_name; });
-        pid.node = frame.node;
-        pid.place = frame.fes.find(name)->second;
-        if(temp_conn.find(conn) == temp_conn.end()) {
-            temp_conn[conn] = set<typename FrameGraph<Node,Place>::PlaceId>();
+        for(auto fr : temp_frames[frame_var]) {
+            string frame_name = std::get<0>(fr);
+            if(frame_name.empty()) continue;
+            if(find(fr.second.begin(), fr.second.end(), name) == fr.second.end()) continue;
+            const typename FrameGraph<Node,Place>::Frame& frame
+                = *find_if(frames.begin(), frames.end(),
+                    [&frame_name](const typename FrameGraph<Node,Place>::Frame& fr)
+                                 { return fr.name == frame_name; });
+            pid.node = frame.node;
+            pid.place = frame.fes.find(name)->second;
+            if(temp_conn.find(conn) == temp_conn.end()) {
+                temp_conn[conn] = set<typename FrameGraph<Node,Place>::PlaceId>();
+            }
+            temp_conn[conn].insert(pid);
         }
-        temp_conn[conn].insert(pid);
     }
 }
 
@@ -167,16 +174,20 @@ template <typename Handler>
 void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_frames_t temp_frames;
     std::shared_ptr<SList> expr_as_list = internal::read_slist_from_sexpr(expr);
+    FrameDico dico("grammar.json");
 
     // Precompute frames
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
         std::shared_ptr<SList> child = internal::read_slist_from_sexpr((*expr_as_list)[i]);
-        internal::parse_a_meaning(child, temp_frames);
+        internal::parse_a_meaning(child, temp_frames, &dico);
     }
 
     // Apply handler to build definite frames
-    for(auto pr : temp_frames) {
-        m_frames.push_back(handler(pr.second.first, pr.second.second));
+    for(auto frl : temp_frames) {
+        for(auto pr : frl.second) {
+            if(pr.first.empty()) continue;
+            m_frames.push_back(handler(pr.first, pr.second));
+        }
     }
 
     // Compute connections
