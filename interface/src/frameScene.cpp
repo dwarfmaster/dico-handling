@@ -11,6 +11,12 @@ FrameScene::FrameScene() {
     setScene(&m_scene);
 }
 
+FrameScene::FrameScene(QWidget* wd)
+    : FlowView(wd)
+{
+    setScene(&m_scene);
+}
+
 FrameScene::~FrameScene() {
     /* Nothing to do */
 }

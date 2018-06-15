@@ -17,6 +17,7 @@ set(CMAKE_CXX_STANDARD 14)
 
 set(CPP_SOURCE_FILES
     src/main.cpp
+    src/app.cpp
     src/frames.cpp
     src/feData.cpp
     src/sexpr.cpp

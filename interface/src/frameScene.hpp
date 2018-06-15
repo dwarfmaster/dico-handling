@@ -16,6 +16,7 @@ class FrameScene : public QtNodes::FlowView {
 
     public:
         FrameScene();
+        FrameScene(QWidget* wd);
         virtual ~FrameScene();
 
         void reset(const SExpr& expr);
