@@ -190,6 +190,10 @@ bool SExprParser::operator!() const {
 SList::SList() {
     /* Nothing to do */
 }
+        
+SList::SList(const std::vector<SExpr>& expr)
+    : m_childrens(expr)
+    { }
 
 SList::~SList() {
     /* Nothing to do */

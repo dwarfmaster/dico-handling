@@ -84,6 +84,7 @@ class SExprParser {
 class SList {
     public:
         SList();
+        SList(const std::vector<SExpr>& expr);
         ~SList();
         
         size_t childrens() const;

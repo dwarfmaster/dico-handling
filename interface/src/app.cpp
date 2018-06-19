@@ -2,6 +2,12 @@
 #include "app.hpp"
 #include "sexpr.hpp"
 
+#include <algorithm>
+#include <iterator>
+#include <memory>
+#include <boost/algorithm/string.hpp>
+#include <boost/algorithm/string/split.hpp>
+
 #include <nodes/NodeStyle>
 #include <nodes/FlowViewStyle>
 #include <nodes/ConnectionStyle>
@@ -61,8 +67,20 @@ int App::exec() {
 }
         
 void App::compute() {
-    /* TODO */
-    std::cout << m_line->displayText().toUtf8().constData() << std::endl;
+    std::string data = m_line->displayText().toUtf8().constData();
+    boost::algorithm::to_lower(data);
+
+    /* Use a real lexeme splitter */
+    std::vector<std::string> lexemes;
+    boost::algorithm::split(lexemes, data, boost::is_any_of("\t "),
+            boost::token_compress_on);
+    
+    std::vector<SExpr> lex_exprs;
+    std::transform(lexemes.begin(), lexemes.end(), std::back_inserter(lex_exprs),
+            [] (const std::string& str) -> SExpr { return str; });
+    SExpr lex_list = std::make_shared<SList>(lex_exprs);
+
+    m_server.send(lex_list);
 }
 
 static void setStyle()

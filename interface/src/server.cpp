@@ -31,9 +31,7 @@ class SocketReader : public Reader {
             boost::optional<size_t> read_result;
             boost::asio::async_read(*m_socket, buffer(data,size),
                     [&read_result] (const boost::system::error_code&, size_t rd)
-                    { read_result = rd;
-                      if(rd != 0) std::cout << "Received " << rd << std::endl;
-                    });
+                    { read_result = rd; });
 
             m_socket->get_io_service().reset();
             while(m_socket->get_io_service().run_one()) {
@@ -86,7 +84,7 @@ Server& Server::operator>>(SExpr& expr) {
 
 void Server::send(const SExpr& expr) {
     std::ostringstream oss;
-    oss << expr;
+    oss << expr << std::endl;
 
     boost::system::error_code ignored_error;
     write(*m_socket, buffer(oss.str()), ignored_error); 
