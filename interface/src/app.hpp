@@ -5,8 +5,10 @@
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QWidget>
 #include <QtWidgets/QLineEdit>
+#include <QtWidgets/QPushButton>
 #include "frameScene.hpp"
 #include "server.hpp"
+#include "xmlView.hpp"
 
 class App : public QApplication {
     Q_OBJECT
@@ -25,6 +27,8 @@ class App : public QApplication {
         QWidget* m_root;
         FrameScene* m_scene;
         QLineEdit* m_line;
+        XmlView* m_xml;
+        QPushButton *m_copy, *m_recompute, *m_valid;
         Server m_server;
 };
 

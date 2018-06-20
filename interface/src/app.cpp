@@ -12,7 +12,6 @@
 #include <nodes/FlowViewStyle>
 #include <nodes/ConnectionStyle>
 
-#include <QtWidgets/QPushButton>
 
 using namespace std::chrono_literals;
 
@@ -26,7 +25,9 @@ static void setStyle();
 
 App::App(int argc, char *argv[])
     : QApplication(argc, argv), m_root(new QWidget)
-    , m_scene(nullptr), m_line(nullptr), m_server(4444)
+    , m_scene(nullptr), m_line(nullptr), m_xml(nullptr)
+    , m_copy(nullptr), m_recompute(nullptr), m_valid(nullptr)
+    , m_server(4444)
 {
     ::setStyle();
     m_root->setWindowTitle("FCG/Framenet annotator");
@@ -35,16 +36,33 @@ App::App(int argc, char *argv[])
     const size_t n = 10;
 
     QGridLayout* layout = new QGridLayout(m_root);
+    layout->setSizeConstraint(QLayout::SetNoConstraint);
     m_root->setLayout(layout);
 
     m_scene = new FrameScene(m_root);
     layout->addWidget(m_scene, 0, 0, n, n+1);
 
     m_line = new QLineEdit(m_root);
-    layout->addWidget(m_line, n, 0, 1, n);
+    layout->addWidget(m_line, n+3, 0, 1, n);
 
     QPushButton* button = new QPushButton("Compute", m_root);
-    layout->addWidget(button, n, n, 1, 1);
+    layout->addWidget(button, n+3, n, 1, 1);
+
+    m_xml = new XmlView(m_root);
+    m_xml->setEnabled(false);
+    layout->addWidget(m_xml, n, 0, 3, n);
+
+    m_copy = new QPushButton("Copy", m_root);
+    m_copy->setEnabled(false);
+    layout->addWidget(m_copy, n, n, 1, 1);
+
+    m_recompute = new QPushButton("Recompute", m_root);
+    m_recompute->setEnabled(false);
+    layout->addWidget(m_recompute, n+1, n, 1, 1);
+
+    m_valid = new QPushButton("OK", m_root);
+    m_valid->setEnabled(false);
+    layout->addWidget(m_valid, n+2, n, 1, 1);
 
     QObject::connect(button, SIGNAL(clicked()),
             this, SLOT(compute()));
