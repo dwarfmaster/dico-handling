@@ -57,8 +57,7 @@ App::~App() {
 int App::exec() {
     SExpr expr;
 
-    /* TODO detect closing of gui */
-    while(true) {
+    while(m_root->isVisible()) {
         processEvents();
         if(m_server.receive(expr, 16ms)) m_scene->reset(expr);
     }
@@ -82,7 +81,7 @@ void App::compute() {
 
     m_server.send(lex_list);
 }
-
+        
 static void setStyle()
 {
   ConnectionStyle::setConnectionStyle(
