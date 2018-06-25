@@ -138,16 +138,14 @@ generateBind bind_name dico rid = do
     let supFRVar = Var $ "fr-" <> supName
     let subFRVar = Var $ "fr-" <> subName
     let unitName = Var $ subName <> "-unit"
-    let unitVarF = Var "fst-unit"
-    let unitVarL = Var "lst-unit"
+    let unitVar  = Var "unit"
     return $ Construction
         (subName <> "-" <> bind_name <> "-" <> supName <> "-cxn")
         [ TUnit unitName
                 [ UnitE "meaning" $ SetOfPred  $ [
                     Predicate "frame" [ AnyLisp supFRVar
                                       , AnyLisp $ LispString supName
-                                      , AnyLisp unitVarF
-                                      , AnyLisp unitVarL
+                                      , AnyLisp unitVar
                                       ]
                     ] <> fmap (\(_,lbl,sub,var) ->
                                 Predicate "fe" [ AnyLisp $ if sub then subFRVar
@@ -162,8 +160,7 @@ generateBind bind_name dico rid = do
         (let lock = UnitE "meaning" $ SetOfPred [
                      Predicate "frame" [ AnyLisp subFRVar
                                        , AnyLisp $ LispString subName
-                                       , AnyLisp unitVarF
-                                       , AnyLisp unitVarL
+                                       , AnyLisp unitVar
                                        ]
                    ]
         in [ LUnit unitName [ lock ] [ lock ] ])
@@ -224,14 +221,7 @@ generateFrameLexUnit :: String -> LexUnit -> Construction
 generateFrameLexUnit frame (LU name lid lexeme) =
     Construction
         (uname <> "-" <> show lid <> "-cxn")
-        [ TUnit unit [ UnitE "meaning"
-                             $ SetOfPred
-                             [ Predicate "word" [ AnyLisp unit
-                                                , AnyLisp $ LispString lexeme
-                                                , AnyLisp $ Var "next-word"
-                                                ]
-                             ]
-                     ]
+        [ TUnit unit []
         , TUnit unitref [ UnitE "meaning-unit" unit
                         , UnitE "first"        unit
                         , UnitE "last"         unit
@@ -241,7 +231,6 @@ generateFrameLexUnit frame (LU name lid lexeme) =
           [ Hashm $ Hmeaning $ SetOfPred [
               Predicate "frame" [ AnyLisp $ Var $ "fr-" <> frame
                                 , AnyLisp $ LispString frame
-                                , AnyLisp unit
                                 , AnyLisp unit
                                 ]
             ]

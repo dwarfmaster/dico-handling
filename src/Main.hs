@@ -17,7 +17,6 @@ out          = "lexicon.lisp"
 pruning      = ["green", "boat"]
 
 main :: IO ()
-main = prunedFramenetToFCG pruning framenetpath out writeCxns
--- main = framenetDictionnary framenetpath
---    >>= TIO.writeFile "grammar.json" . dicoJSON
+main = framenetDictionnary framenetpath
+   >>= TIO.writeFile "grammar.json" . dicoJSON
 

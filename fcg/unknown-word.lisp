@@ -52,7 +52,7 @@
                              (last         ?word-unit))
                            <-
                            (?word-unit
-                             (HASH meaning ((frame ?fent Entity            ?word-unit ?word-unit)
+                             (HASH meaning ((frame ?fent Entity            ?word-unit)
                                             (fe    ?fent Entity            ?fe-ent)
                                             (fe    ?fent Constituent_parts ?fe-const)
                                             (fe    ?fent Formational_cause ?fe-form)
@@ -87,7 +87,7 @@
                              (last         ?word-unit))
                            <-
                            (?word-unit
-                             (HASH meaning ((frame ?fattr Attributes ?word-unit ?word-unit)
+                             (HASH meaning ((frame ?fattr Attributes ?word-unit)
                                             (fe    ?fattr Entity     ?fe-ent)
                                             (fe    ?fattr Attribute  ?fe-attr)
                                             (fe    ?fattr Value      ?fe-value)))
