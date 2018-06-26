@@ -246,8 +246,8 @@ std::string read_string_from_sexpr(const SExpr& expr) {
 
 std::shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr) {
     return sexpr_map<std::shared_ptr<SList>>
-        ( [](const std::string&)
-            { throw "Expected SList, got string in SExpr";
+        ( [](const std::string& str)
+            { throw "Expected SList, got string \"" + str + "\" in SExpr";
               return std::shared_ptr<SList>(nullptr);
             }
         , [](std::shared_ptr<SList> lst)
