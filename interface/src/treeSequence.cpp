@@ -35,7 +35,7 @@ void TreeSequence::rebuild(const std::vector<std::string>& words, const SExpr& d
         std::string node_name   = read_string_from_sexpr((*node_sexpr)[0]);
         std::string node_parent = read_string_from_sexpr((*node_sexpr)[1]);
 
-        if(nodeNames.find(node_name) != nodeNames.end()) {
+        if(nodeNames.find(node_name) == nodeNames.end()) {
             nodeNames[node_name] = std::make_shared<treeNode>(node);
         } else {
             nodeNames[node_name]->first = node.first;
@@ -67,6 +67,8 @@ std::vector<std::pair<size_t,size_t>> TreeSequence::encapsulate(size_t word_id) 
             result.push_back(std::make_pair(nd->first, nd->last));
         } else ++child;
     }
+
+    return result;
 }
 
 
