@@ -66,6 +66,8 @@ App::App(int argc, char *argv[])
 
     QObject::connect(button, SIGNAL(clicked()),
             this, SLOT(compute()));
+    QObject::connect(m_line, SIGNAL(cursorPositionChanged(int,int)),
+            this, SLOT(lineCursor(int,int)));
 }
 
 App::~App() {
@@ -77,7 +79,19 @@ int App::exec() {
 
     while(m_root->isVisible()) {
         processEvents();
-        if(m_server.receive(expr, 16ms)) m_scene->reset(expr);
+        if(m_server.receive(expr, 16ms)) {
+            std::cout << "Received data !" << std::endl;
+            m_scene->reset(expr);
+            m_treeSeq.rebuild(m_lexemes, expr);
+
+            for(size_t id = 0; id < m_lexemes.size(); ++id) {
+                std::cout << id << "(" << m_treeSeq.get_word(id) << ") -> ";
+                for(auto p : m_treeSeq.encapsulate(id)) {
+                    std::cout << "<" << p.first << ";" << p.second << "> -> ";
+                }
+                std::cout << std::endl;
+            }
+        }
     }
 
     return 0;
@@ -88,16 +102,20 @@ void App::compute() {
     boost::algorithm::to_lower(data);
 
     /* Use a real lexeme splitter */
-    std::vector<std::string> lexemes;
-    boost::algorithm::split(lexemes, data, boost::is_any_of("\t "),
+    boost::algorithm::split(m_lexemes, data, boost::is_any_of("\t "),
             boost::token_compress_on);
     
     std::vector<SExpr> lex_exprs;
-    std::transform(lexemes.begin(), lexemes.end(), std::back_inserter(lex_exprs),
+    std::transform(m_lexemes.begin(), m_lexemes.end(), std::back_inserter(lex_exprs),
             [] (const std::string& str) -> SExpr { return str; });
     SExpr lex_list = std::make_shared<SList>(lex_exprs);
 
     m_server.send(lex_list);
+    m_line->setReadOnly(true);
+}
+
+void App::lineCursor(int oldPos, int newPos) {
+    std::cout << "Cursor moved from " << oldPos << " to " << newPos << std::endl;
 }
         
 static void setStyle()

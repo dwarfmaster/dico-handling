@@ -15,7 +15,7 @@ class SocketReader : public Reader {
             { }
 
         ~SocketReader() {
-            delete m_socket;
+            /* Nothing to do */
         }
 
         /* code taken from there:

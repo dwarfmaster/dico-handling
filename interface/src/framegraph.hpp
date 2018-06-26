@@ -171,7 +171,8 @@ template <typename Node, typename Place>
 template <typename Handler>
 void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_frames_t temp_frames;
-    std::shared_ptr<SList> expr_as_list = read_slist_from_sexpr(expr);
+    std::shared_ptr<SList> top_level = read_slist_from_sexpr(expr);
+    std::shared_ptr<SList> expr_as_list = read_slist_from_sexpr((*top_level)[0]);
     FrameDico dico("grammar.json");
 
     // Precompute frames

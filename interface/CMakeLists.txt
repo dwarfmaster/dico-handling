@@ -28,7 +28,8 @@ set(CPP_SOURCE_FILES
     src/framegraph.cpp
     src/framedico.cpp
     src/frameScene.cpp
-    src/xmlView.cpp)
+    src/xmlView.cpp
+    src/treeSequence.cpp)
 
 include_directories(nodeeditor/include)
 add_executable(frameAnnotator ${CPP_SOURCE_FILES})

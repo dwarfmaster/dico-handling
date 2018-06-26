@@ -1,6 +1,8 @@
 
 #pragma once
 
+#include <vector>
+#include <string>
 #include <QtWidgets/QGridLayout>
 #include <QtWidgets/QApplication>
 #include <QtWidgets/QWidget>
@@ -9,6 +11,7 @@
 #include "frameScene.hpp"
 #include "server.hpp"
 #include "xmlView.hpp"
+#include "treeSequence.hpp"
 
 class App : public QApplication {
     Q_OBJECT
@@ -20,8 +23,9 @@ class App : public QApplication {
 
         int exec();
 
-    public slots:
+    private slots:
         void compute();
+        void lineCursor(int oldPos, int newPos);
 
     private:
         QWidget* m_root;
@@ -30,5 +34,8 @@ class App : public QApplication {
         XmlView* m_xml;
         QPushButton *m_copy, *m_recompute, *m_valid;
         Server m_server;
+
+        std::vector<std::string> m_lexemes;
+        TreeSequence m_treeSeq;
 };
 
