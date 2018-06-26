@@ -2,28 +2,6 @@
 #include "framegraph.hpp"
 
 namespace internal {
-    string read_string_from_sexpr(const SExpr& expr) {
-        return sexpr_map<string>( [](const std::string& str)
-                                    { return str; }
-                                , [](shared_ptr<SList>)
-                                    { throw "Expected string, got SList in SExpr"; 
-                                      return "";
-                                    }
-                                , expr
-                                );
-    }
-
-    shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr) {
-        return sexpr_map<shared_ptr<SList>>
-            ( [](const std::string&)
-                { throw "Expected SList, got string in SExpr";
-                  return shared_ptr<SList>(nullptr);
-                }
-            , [](shared_ptr<SList> lst)
-                { return lst; }
-            , expr
-            );
-    }
 
     void parse_a_meaning(shared_ptr<SList> lst, temp_frames_t& temp_frames,
             FrameDico* dico) {

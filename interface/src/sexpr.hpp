@@ -8,6 +8,7 @@
 #include <ostream>
 #include <chrono>
 #include <queue>
+#include <memory>
 #include <boost/variant.hpp>
 
 class SList;
@@ -120,4 +121,7 @@ template <typename T, typename Fstring, typename Flist>
 T sexpr_map(Fstring fstring, Flist flist, const SExpr& expr) {
     return boost::apply_visitor(map_visitor<T,Fstring,Flist>(fstring, flist), expr);
 }
+
+std::string read_string_from_sexpr(const SExpr& expr);
+std::shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr);
 

@@ -233,3 +233,26 @@ std::ostream& operator<<(std::ostream& os, const SExpr& expr) {
     return os;
 }
 
+std::string read_string_from_sexpr(const SExpr& expr) {
+    return sexpr_map<std::string>( [](const std::string& str)
+                                     { return str; }
+                                 , [](std::shared_ptr<SList>)
+                                     { throw "Expected string, got SList in SExpr"; 
+                                       return "";
+                                     }
+                                 , expr
+                                 );
+}
+
+std::shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr) {
+    return sexpr_map<std::shared_ptr<SList>>
+        ( [](const std::string&)
+            { throw "Expected SList, got string in SExpr";
+              return std::shared_ptr<SList>(nullptr);
+            }
+        , [](std::shared_ptr<SList> lst)
+            { return lst; }
+        , expr
+        );
+}
+

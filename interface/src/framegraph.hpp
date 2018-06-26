@@ -130,8 +130,6 @@ namespace internal {
     template <typename Node, typename Place>
     using temp_connections_t = map<string, set<typename FrameGraph<Node,Place>::PlaceId>>;
 
-    string read_string_from_sexpr(const SExpr& expr);
-    shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr);
     void parse_a_meaning(shared_ptr<SList> lst, temp_frames_t& temp_frames,
             FrameDico* dico);
 
@@ -173,12 +171,12 @@ template <typename Node, typename Place>
 template <typename Handler>
 void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_frames_t temp_frames;
-    std::shared_ptr<SList> expr_as_list = internal::read_slist_from_sexpr(expr);
+    std::shared_ptr<SList> expr_as_list = read_slist_from_sexpr(expr);
     FrameDico dico("grammar.json");
 
     // Precompute frames
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
-        std::shared_ptr<SList> child = internal::read_slist_from_sexpr((*expr_as_list)[i]);
+        std::shared_ptr<SList> child = read_slist_from_sexpr((*expr_as_list)[i]);
         internal::parse_a_meaning(child, temp_frames, &dico);
     }
 
@@ -193,7 +191,7 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     // Compute connections
     internal::temp_connections_t<Node,Place> temp_conn;
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
-        std::shared_ptr<SList> child = internal::read_slist_from_sexpr((*expr_as_list)[i]);
+        std::shared_ptr<SList> child = read_slist_from_sexpr((*expr_as_list)[i]);
         internal::connect<Node,Place>(child, temp_conn, temp_frames, m_frames);
     }
 
