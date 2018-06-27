@@ -30,6 +30,7 @@ FrameScene::handler(const std::string& name, const std::vector<std::string>& fes
 
     return FrameGraph<Node*,size_t>::Frame {
         .name = name,
+        .lexeme_var = "",
         .node = &m_scene.createNode(std::unique_ptr<NodeDataModel>(new FrameModel(fr))),
         .fes  = ids
     };

@@ -25,6 +25,7 @@ class FrameGraph {
     public:
         struct Frame {
             std::string name;
+            std::string lexeme_var;
             Node node;
             std::map<std::string,Place> fes;
         };
@@ -139,7 +140,7 @@ namespace internal {
     template <typename Node, typename Place>
     void connect(shared_ptr<SList> lst, temp_connections_t<Node,Place>& temp_conn,
             temp_frames_t& temp_frames, // should be const
-            const std::vector<typename FrameGraph<Node,Place>::Frame>& frames) {
+            std::vector<typename FrameGraph<Node,Place>::Frame>& frames) {
         std::string meaning_ident = boost::algorithm::to_lower_copy(
                 read_string_from_sexpr((*lst)[0]));
         std::string frame_var = boost::algorithm::to_lower_copy(
@@ -149,7 +150,17 @@ namespace internal {
         std::string conn = boost::algorithm::to_lower_copy(
                 read_string_from_sexpr((*lst)[3]));
 
-        if(meaning_ident == "frame") return;
+        if(meaning_ident == "frame") {
+            for(auto fr : temp_frames[frame_var]) {
+                std::string frame_name = std::get<0>(fr);
+                auto it = find_if(frames.begin(), frames.end(),
+                                  [&frame_name]
+                                  (const typename FrameGraph<Node,Place>::Frame& fr)
+                                  { return fr.name == frame_name; });
+                if(it != frames.end()) it->lexeme_var = conn;
+            }
+            return;
+        }
 
         typename FrameGraph<Node,Place>::PlaceId pid;
         for(auto fr : temp_frames[frame_var]) {
