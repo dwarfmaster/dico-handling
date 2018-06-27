@@ -51,3 +51,7 @@ void FrameScene::reset(const SExpr& expr) {
     }
 }
 
+FrameGraph<QtNodes::Node*,size_t>& FrameScene::graph() {
+    return boost::get(m_graph);
+}
+

@@ -36,6 +36,6 @@ class App : public QApplication {
         Server m_server;
 
         std::vector<std::string> m_lexemes;
-        TreeSequence m_treeSeq;
+        TreeSequence<QtNodes::Node*,size_t> m_treeSeq;
 };
 

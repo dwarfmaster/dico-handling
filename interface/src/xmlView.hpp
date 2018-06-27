@@ -2,6 +2,9 @@
 #pragma once
 
 #include <QtWidgets/QTextEdit>
+#include <nodes/NodeData>
+#include <nodes/FlowScene>
+#include "treeSequence.hpp"
 
 class XmlView : public QTextEdit {
     public:
@@ -10,5 +13,6 @@ class XmlView : public QTextEdit {
         virtual ~XmlView();
 
         void setText(const std::string& str);
+        void set(const TreeSequence<QtNodes::Node*,size_t>& tree, size_t word);
 };
 

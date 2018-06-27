@@ -41,7 +41,8 @@ class FrameGraph {
 
         FrameGraph() = delete;
         template <typename Handler>
-        FrameGraph(const SExpr& expr, Handler handler) {
+        FrameGraph(const SExpr& expr, Handler handler)
+            : m_dico("grammar.json") {
             compute(expr, handler);
         }
 
@@ -53,10 +54,12 @@ class FrameGraph {
         cc_iterator ccend() const;
         const std::set<PlaceId>& getCCOf(PlaceId pid) const;
         void bind(PlaceId id1, PlaceId id2);
+        FrameDico& dico();
 
     private:
         std::vector<Frame> m_frames;
         std::list<std::set<PlaceId>> m_connections;
+        FrameDico m_dico;
 
         template <typename Handler>
         void compute(const SExpr& expr, Handler handler);
@@ -173,12 +176,11 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_frames_t temp_frames;
     std::shared_ptr<SList> top_level = read_slist_from_sexpr(expr);
     std::shared_ptr<SList> expr_as_list = read_slist_from_sexpr((*top_level)[0]);
-    FrameDico dico("grammar.json");
 
     // Precompute frames
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
         std::shared_ptr<SList> child = read_slist_from_sexpr((*expr_as_list)[i]);
-        internal::parse_a_meaning(child, temp_frames, &dico);
+        internal::parse_a_meaning(child, temp_frames, &m_dico);
     }
 
     // Apply handler to build definite frames
@@ -202,3 +204,7 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     }
 }
 
+template <typename Node, typename Place>
+FrameDico& FrameGraph<Node,Place>::dico() {
+    return m_dico;
+}

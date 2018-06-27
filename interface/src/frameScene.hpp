@@ -20,6 +20,7 @@ class FrameScene : public QtNodes::FlowView {
         virtual ~FrameScene();
 
         void reset(const SExpr& expr);
+        FrameGraph<QtNodes::Node*,size_t>& graph();
 
     private:
         FrameGraph<QtNodes::Node*,size_t>::Frame

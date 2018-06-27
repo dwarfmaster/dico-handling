@@ -82,7 +82,7 @@ int App::exec() {
         if(m_server.receive(expr, 16ms)) {
             std::cout << "Received data !" << std::endl;
             m_scene->reset(expr);
-            m_treeSeq.rebuild(m_lexemes, expr);
+            m_treeSeq.rebuild(m_lexemes, m_scene->graph(), expr);
 
             for(size_t id = 0; id < m_lexemes.size(); ++id) {
                 std::cout << id << "(" << m_treeSeq.get_word(id) << ") -> ";
