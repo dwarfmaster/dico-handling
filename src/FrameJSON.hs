@@ -21,11 +21,17 @@ toJSON :: Dictionnary -> [JSObject AnyJSON]
 toJSON = map frameJSON . M.elems . dico_frames
 
 frameJSON :: Frame -> JSObject AnyJSON
-frameJSON (Frame name _ fes _ _) = toJSObject
-                                 [ ("name", AnyJSON name)
-                                 , ("fes", feJSON fes)
-                                 ]
+frameJSON (Frame name id fes rels _) =
+    toJSObject
+    [ ( "name" , AnyJSON name )
+    , ( "id"   , AnyJSON id   )
+    , ( "fes"  , feJSON  fes  )
+    , ( "rels" , relJSON rels )
+    ]
 
 feJSON :: [FE] -> AnyJSON
 feJSON = AnyJSON . map fe_name
+
+relJSON :: [(RelType,Int)] -> AnyJSON
+relJSON = AnyJSON . map snd . filter ((== InheritsFrom) . fst)
 

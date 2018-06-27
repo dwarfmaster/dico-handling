@@ -14,8 +14,14 @@ class FrameDico {
         bool has_frame(const std::string& name);
         bool frame_has_fe(const std::string& frame, const std::string& fe);
         std::vector<std::string>& fes(const std::string& frame);
+        bool related(const std::string& child, const std::string& parent) const;
         
     private:
-        std::map<std::string,std::vector<std::string>> m_frames;
+        struct Frame {
+            std::vector<std::string> fes;
+            std::vector<std::string> direct_parents;
+            std::vector<std::string> all_parents;
+        };
+        std::map<std::string,Frame> m_frames;
 };
 
