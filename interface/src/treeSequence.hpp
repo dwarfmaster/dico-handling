@@ -10,6 +10,7 @@
 #include <utility>
 #include <cassert>
 #include <boost/optional.hpp>
+#include <boost/bimap.hpp>
 
 
 //  ____            _                 _   _             
@@ -38,7 +39,8 @@ class TreeSequence {
 
     private:
         std::vector<std::string> m_words;
-        std::map<std::string,size_t> m_wordVars;
+        using wdvars_t = boost::bimap<std::string,size_t>;
+        wdvars_t m_wordVars;
         boost::optional<Graph> m_frames;
         struct treeNode {
             size_t first;
@@ -80,7 +82,9 @@ void TreeSequence<Node,Place>::rebuild(const std::vector<std::string>& words,
 
     std::shared_ptr<SList> seq_sexpr = read_slist_from_sexpr((*top_level)[2]);
     for(size_t i = 0; i < seq_sexpr->childrens(); ++i) {
-        m_wordVars[read_string_from_sexpr((*seq_sexpr)[i])] = i;
+        m_wordVars.insert( TreeSequence<Node,Place>::wdvars_t::value_type(
+                    read_string_from_sexpr((*seq_sexpr)[i]),
+                    i));
     }
 
     std::map<std::string,std::shared_ptr<treeNode>> nodeNames;
@@ -142,13 +146,25 @@ std::string TreeSequence<Node,Place>::get_word(size_t word_id) {
 
 template <typename Node, typename Place>
 size_t TreeSequence<Node,Place>::get_word_from_var(const std::string& var) {
-    return m_wordVars[var];
+    return m_wordVars.left.find(var)->second;
 }
 
 
 template <typename Node, typename Place>
 std::vector<typename TreeSequence<Node,Place>::Frame>
 TreeSequence<Node,Place>::get_word_frames(size_t word_id) {
-    /* TODO */
+    using Fr = typename FrameGraph<Node,Place>::Frame;
+    std::string var = m_wordVars.left.find(var)->first;
+    std::vector<Fr> ret;
+    for(size_t i = 0; i < m_frames.nbFrames(); ++i) {
+        if(m_frames.getFrame(i).lexeme_var == var) ret.push_back(m_frames.getFrame(i));
+    }
+
+    /* Works because std::sort supports partial orders */
+    std::sort(ret.begin(), ret.end(),
+            [this](const Fr& f1, const Fr& f2)
+            { return this->m_graph.dico().related(f1, f2); });
+
+    return ret;
 }
 

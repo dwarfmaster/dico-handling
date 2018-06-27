@@ -15,7 +15,7 @@ find_package(Boost COMPONENTS
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(SRCHL REQUIRED source-highlight)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 
 set(CPP_SOURCE_FILES
     src/main.cpp
