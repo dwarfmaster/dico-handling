@@ -32,10 +32,10 @@ class TreeSequence {
 
         void rebuild(const std::vector<std::string>& words, Graph& fg, const SExpr& data);
 
-        std::vector<std::pair<size_t,size_t>> encapsulate(size_t word_id);
-        std::string get_word(size_t word_id);
-        size_t get_word_from_var(const std::string& var);
-        std::vector<Frame> get_word_frames(size_t word_id);
+        std::vector<std::pair<size_t,size_t>> encapsulate(size_t word_id) const;
+        std::string get_word(size_t word_id) const;
+        size_t get_word_from_var(const std::string& var) const;
+        std::vector<Frame> get_word_frames(size_t word_id) const;
 
     private:
         std::vector<std::string> m_words;
@@ -121,7 +121,7 @@ void TreeSequence<Node,Place>::rebuild(const std::vector<std::string>& words,
 
 template <typename Node, typename Place>
 std::vector<std::pair<size_t,size_t>>
-TreeSequence<Node,Place>::encapsulate(size_t word_id) {
+TreeSequence<Node,Place>::encapsulate(size_t word_id) const {
     std::vector<std::pair<size_t,size_t>> result;
     std::shared_ptr<treeNode> nd = m_root;
     size_t child = 0;
@@ -139,31 +139,32 @@ TreeSequence<Node,Place>::encapsulate(size_t word_id) {
 
 
 template <typename Node, typename Place>
-std::string TreeSequence<Node,Place>::get_word(size_t word_id) {
+std::string TreeSequence<Node,Place>::get_word(size_t word_id) const {
     return m_words[word_id];
 }
 
 
 template <typename Node, typename Place>
-size_t TreeSequence<Node,Place>::get_word_from_var(const std::string& var) {
+size_t TreeSequence<Node,Place>::get_word_from_var(const std::string& var) const {
     return m_wordVars.left.find(var)->second;
 }
 
 
 template <typename Node, typename Place>
 std::vector<typename TreeSequence<Node,Place>::Frame>
-TreeSequence<Node,Place>::get_word_frames(size_t word_id) {
+TreeSequence<Node,Place>::get_word_frames(size_t word_id) const {
     using Fr = typename FrameGraph<Node,Place>::Frame;
     std::string var = m_wordVars.left.find(var)->first;
     std::vector<Fr> ret;
-    for(size_t i = 0; i < m_frames.nbFrames(); ++i) {
-        if(m_frames.getFrame(i).lexeme_var == var) ret.push_back(m_frames.getFrame(i));
+    for(size_t i = 0; i < m_frames->nbFrames(); ++i) {
+        if(m_frames->getFrame(i).lexeme_var == var) ret.push_back(m_frames->getFrame(i));
     }
 
     /* Works because std::sort supports partial orders */
     std::sort(ret.begin(), ret.end(),
             [this](const Fr& f1, const Fr& f2)
-            { return this->m_graph.dico().related(f1, f2); });
+            { return this->m_frames->dico()
+                  .related(f1.name, f2.name); });
 
     return ret;
 }

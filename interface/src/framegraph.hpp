@@ -56,6 +56,7 @@ class FrameGraph {
         const std::set<PlaceId>& getCCOf(PlaceId pid) const;
         void bind(PlaceId id1, PlaceId id2);
         FrameDico& dico();
+        const FrameDico& dico() const;
 
     private:
         std::vector<Frame> m_frames;
@@ -219,3 +220,9 @@ template <typename Node, typename Place>
 FrameDico& FrameGraph<Node,Place>::dico() {
     return m_dico;
 }
+
+template <typename Node, typename Place>
+const FrameDico& FrameGraph<Node,Place>::dico() const {
+    return m_dico;
+}
+
