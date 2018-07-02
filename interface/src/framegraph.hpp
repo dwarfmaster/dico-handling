@@ -23,24 +23,26 @@
 template <typename Node, typename Place>
 class FrameGraph {
     public:
-        struct Frame {
-            std::string name;
-            std::string lexeme_var;
-            Node node;
-            std::map<std::string,Place> fes;
-        };
         struct PlaceId {
             Node node;
             Place place;
+            size_t frame;
 
             bool operator<(const PlaceId& rhs) const {
                 return node < rhs.node
                     || (!(rhs.node > node) && place < rhs.place);
             }
         };
+        struct Frame {
+            std::string name;
+            std::string lexeme_var;
+            Node node;
+            std::map<std::string,PlaceId> fes;
+        };
         using cc_iterator = typename std::list<std::set<PlaceId>>::const_iterator;
 
         FrameGraph() = delete;
+        /* The handler should only set the place data in the fes PlaceId */
         template <typename Handler>
         FrameGraph(const SExpr& expr, Handler handler)
             : m_dico("grammar.json") {
@@ -105,7 +107,7 @@ typename FrameGraph<Node,Place>::cc_iterator FrameGraph<Node,Place>::ccend() con
 template <typename Node, typename Place>
 const std::set<typename FrameGraph<Node,Place>::PlaceId>&
 FrameGraph<Node,Place>::getCCOf(typename FrameGraph<Node,Place>::PlaceId pid) const {
-    for(auto cc : m_connections) {
+    for(auto& cc : m_connections) {
         if(cc.find(pid) != cc.end()) return cc;
     }
 }
@@ -131,6 +133,7 @@ namespace internal {
     using namespace std;
     // Map from frame variable name to frame name and list of fes
     using temp_frames_t = map<string, vector<pair<string, vector<string>>>>;
+    using frames_ids_t = map<pair<string,string>, size_t>;
     // Map from fe variable to the according set
     template <typename Node, typename Place>
     using temp_connections_t = map<string, set<typename FrameGraph<Node,Place>::PlaceId>>;
@@ -141,6 +144,7 @@ namespace internal {
     template <typename Node, typename Place>
     void connect(shared_ptr<SList> lst, temp_connections_t<Node,Place>& temp_conn,
             temp_frames_t& temp_frames, // should be const
+            frames_ids_t& indexes,
             std::vector<typename FrameGraph<Node,Place>::Frame>& frames) {
         std::string meaning_ident = boost::algorithm::to_lower_copy(
                 read_string_from_sexpr((*lst)[0]));
@@ -168,16 +172,17 @@ namespace internal {
             string frame_name = std::get<0>(fr);
             if(frame_name.empty()) continue;
             if(find(fr.second.begin(), fr.second.end(), name) == fr.second.end()) continue;
-            const typename FrameGraph<Node,Place>::Frame& frame
+            typename FrameGraph<Node,Place>::Frame& frame
                 = *find_if(frames.begin(), frames.end(),
                     [&frame_name](const typename FrameGraph<Node,Place>::Frame& fr)
                                  { return fr.name == frame_name; });
             pid.node = frame.node;
-            pid.place = frame.fes.find(name)->second;
+            pid.place = frame.fes.find(name)->second.place;
+            pid.frame = indexes[make_pair(frame_var,frame_name)];
+            frame.fes[name] = pid;
             if(temp_conn.find(conn) == temp_conn.end()) {
                 temp_conn[conn] = set<typename FrameGraph<Node,Place>::PlaceId>();
             }
-            temp_conn[conn].insert(pid);
         }
     }
 }
@@ -186,6 +191,7 @@ template <typename Node, typename Place>
 template <typename Handler>
 void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_frames_t temp_frames;
+    internal::frames_ids_t indexes;
     std::shared_ptr<SList> top_level = read_slist_from_sexpr(expr);
     std::shared_ptr<SList> expr_as_list = read_slist_from_sexpr((*top_level)[0]);
 
@@ -199,6 +205,7 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     for(auto frl : temp_frames) {
         for(auto pr : frl.second) {
             if(pr.first.empty()) continue;
+            indexes[std::make_pair(frl.first,pr.first)] = m_frames.size();
             m_frames.push_back(handler(pr.first, pr.second));
         }
     }
@@ -207,7 +214,7 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_connections_t<Node,Place> temp_conn;
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
         std::shared_ptr<SList> child = read_slist_from_sexpr((*expr_as_list)[i]);
-        internal::connect<Node,Place>(child, temp_conn, temp_frames, m_frames);
+        internal::connect<Node,Place>(child, temp_conn, temp_frames, indexes, m_frames);
     }
 
     // Set them

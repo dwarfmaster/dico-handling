@@ -25,8 +25,8 @@ FrameGraph<Node*,size_t>::Frame
 FrameScene::handler(const std::string& name, const std::vector<std::string>& fes) {
     Frame *fr = new Frame(name);
     for(auto& fe : fes) fr->addFe(fe);
-    std::map<std::string,size_t> ids;
-    for(size_t i = 0; i < fes.size(); ++i) ids[fes[i]] = i;
+    std::map<std::string,FrameGraph<Node*,size_t>::PlaceId> ids;
+    for(size_t i = 0; i < fes.size(); ++i) ids[fes[i]].place = i;
 
     return FrameGraph<Node*,size_t>::Frame {
         .name = name,
