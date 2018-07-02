@@ -43,8 +43,12 @@ FrameDico::FrameDico(const std::string& path) {
         std::string id(object["id"].toString().toUtf8().constData());
         frameNames[atoi<uint64_t>(id)] = name;
         for(auto fe : object["fes"].toArray()) {
-            m_frames[name].fes.push_back(to_lower_copy(std::string(
-                            fe.toString().toUtf8().constData())));
+            auto fe_array = fe.toArray();
+            std::string fe_name = to_lower_copy(std::string(
+                            fe_array[0].toString().toUtf8().constData()));
+            size_t fe_id = static_cast<size_t>(fe_array[1].toDouble());
+            m_frames[name].fes.push_back(fe_name);
+            m_frames[name].feIDs[fe_name] = fe_id;
         }
     }
 
@@ -105,5 +109,9 @@ bool FrameDico::related(const std::string& child, const std::string& parent) con
     return std::find(m_frames.at(cname).all_parents.cbegin(),
             m_frames.at(cname).all_parents.cend(), pname)
         != m_frames.at(cname).all_parents.cend();
+}
+
+size_t FrameDico::feID(const std::string& frame, const std::string& fe) const {
+    return m_frames.at(frame).feIDs.at(fe);
 }
 
