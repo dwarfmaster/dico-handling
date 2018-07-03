@@ -36,6 +36,7 @@ class TreeSequence {
         std::string get_word(size_t word_id) const;
         size_t get_word_from_var(const std::string& var) const;
         std::vector<Frame> get_word_frames(size_t word_id) const;
+        const Graph& graph() const;
 
     private:
         std::vector<std::string> m_words;
@@ -76,6 +77,7 @@ void TreeSequence<Node,Place>::rebuild(const std::vector<std::string>& words,
         TreeSequence<Node,Place>::Graph& gr,
         const SExpr& data) {
     m_words = words;
+    m_frames = gr;
 
     std::shared_ptr<SList> top_level = read_slist_from_sexpr(data);
     assert(top_level->childrens() == 3);
@@ -83,7 +85,7 @@ void TreeSequence<Node,Place>::rebuild(const std::vector<std::string>& words,
     std::shared_ptr<SList> seq_sexpr = read_slist_from_sexpr((*top_level)[2]);
     for(size_t i = 0; i < seq_sexpr->childrens(); ++i) {
         m_wordVars.insert( TreeSequence<Node,Place>::wdvars_t::value_type(
-                    read_string_from_sexpr((*seq_sexpr)[i]),
+                    boost::to_lower_copy(read_string_from_sexpr((*seq_sexpr)[i])),
                     i));
     }
 
@@ -127,6 +129,9 @@ TreeSequence<Node,Place>::encapsulate(size_t word_id) const {
     size_t child = 0;
 
     while(child < nd->children.size()) {
+        if(nd->children.size() == 0 || nd->children[0]->first > word_id) {
+            return result;
+        }
         if(word_id <= nd->children[child]->last) {
             child = 0;
             nd = nd->children[child];
@@ -154,7 +159,7 @@ template <typename Node, typename Place>
 std::vector<typename TreeSequence<Node,Place>::Frame>
 TreeSequence<Node,Place>::get_word_frames(size_t word_id) const {
     using Fr = typename FrameGraph<Node,Place>::Frame;
-    std::string var = m_wordVars.left.find(var)->first;
+    std::string var = m_wordVars.right.find(word_id)->second;
     std::vector<Fr> ret;
     for(size_t i = 0; i < m_frames->nbFrames(); ++i) {
         if(m_frames->getFrame(i).lexeme_var == var) ret.push_back(m_frames->getFrame(i));
@@ -167,5 +172,11 @@ TreeSequence<Node,Place>::get_word_frames(size_t word_id) const {
                   .related(f1.name, f2.name); });
 
     return ret;
+}
+
+template <typename Node, typename Place>
+const typename TreeSequence<Node,Place>::Graph&
+TreeSequence<Node,Place>::graph() const {
+    return *m_frames;
 }
 
