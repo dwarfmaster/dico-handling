@@ -37,7 +37,7 @@
             ((eql (car feature) 'first) (setf fst (car (cdr feature))))
             ((eql (car feature) 'last)  (setf lst (car (cdr feature))))
             ((eql (car feature) 'tree-structure) (setf supers (car (cdr (car (car (cdr feature)))))))))
-    (if supers (list (list name supers fst lst)) nil)))
+    (if (and fst lst) (list (list name supers fst lst)) nil)))
 
 (defun node-to-structure (node)
   (loop for unit in (left-pole-structure (car-resulting-cfs (cipn-car node)))
