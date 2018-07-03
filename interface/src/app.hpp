@@ -35,6 +35,7 @@ class App : public QApplication {
         QPushButton *m_copy, *m_recompute, *m_valid;
         Server m_server;
 
+        std::vector<std::pair<size_t,size_t>> m_lexBounds;
         std::vector<std::string> m_lexemes;
         TreeSequence<QtNodes::Node*,size_t> m_treeSeq;
 };
