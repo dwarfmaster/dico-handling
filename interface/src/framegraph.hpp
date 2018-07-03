@@ -27,10 +27,12 @@ class FrameGraph {
             Node node;
             Place place;
             size_t frame;
+            std::string fe_name;
+            size_t fe_id;
 
             bool operator<(const PlaceId& rhs) const {
                 return node < rhs.node
-                    || (!(rhs.node > node) && place < rhs.place);
+                    || (!(rhs.node < node) && place < rhs.place);
             }
         };
         struct Frame {
@@ -55,7 +57,7 @@ class FrameGraph {
         size_t nbCCs() const;
         cc_iterator ccbegin() const;
         cc_iterator ccend() const;
-        const std::set<PlaceId>& getCCOf(PlaceId pid) const;
+        const std::set<PlaceId>& getCCOf(const PlaceId& pid) const;
         void bind(PlaceId id1, PlaceId id2);
         FrameDico& dico();
         const FrameDico& dico() const;
@@ -106,10 +108,11 @@ typename FrameGraph<Node,Place>::cc_iterator FrameGraph<Node,Place>::ccend() con
 
 template <typename Node, typename Place>
 const std::set<typename FrameGraph<Node,Place>::PlaceId>&
-FrameGraph<Node,Place>::getCCOf(typename FrameGraph<Node,Place>::PlaceId pid) const {
+FrameGraph<Node,Place>::getCCOf(const typename FrameGraph<Node,Place>::PlaceId& pid) const {
     for(auto& cc : m_connections) {
         if(cc.find(pid) != cc.end()) return cc;
     }
+    throw "Couldn't find CC of pid";
 }
 
 template <typename Node, typename Place>
@@ -144,7 +147,7 @@ namespace internal {
     template <typename Node, typename Place>
     void connect(shared_ptr<SList> lst, temp_connections_t<Node,Place>& temp_conn,
             temp_frames_t& temp_frames, // should be const
-            frames_ids_t& indexes,
+            frames_ids_t& indexes, FrameDico& dico,
             std::vector<typename FrameGraph<Node,Place>::Frame>& frames) {
         std::string meaning_ident = boost::algorithm::to_lower_copy(
                 read_string_from_sexpr((*lst)[0]));
@@ -172,17 +175,19 @@ namespace internal {
             string frame_name = std::get<0>(fr);
             if(frame_name.empty()) continue;
             if(find(fr.second.begin(), fr.second.end(), name) == fr.second.end()) continue;
-            typename FrameGraph<Node,Place>::Frame& frame
-                = *find_if(frames.begin(), frames.end(),
+            auto frame = find_if(frames.begin(), frames.end(),
                     [&frame_name](const typename FrameGraph<Node,Place>::Frame& fr)
                                  { return fr.name == frame_name; });
-            pid.node = frame.node;
-            pid.place = frame.fes.find(name)->second.place;
-            pid.frame = indexes[make_pair(frame_var,frame_name)];
-            frame.fes[name] = pid;
+            pid.node    = frame->node;
+            pid.place   = frame->fes.find(name)->second.place;
+            pid.frame   = indexes[make_pair(frame_var,frame_name)];
+            pid.fe_name = name;
+            pid.fe_id   = dico.feID(frame_name, name);
+            frame->fes[name] = pid;
             if(temp_conn.find(conn) == temp_conn.end()) {
                 temp_conn[conn] = set<typename FrameGraph<Node,Place>::PlaceId>();
             }
+            temp_conn[conn].insert(pid);
         }
     }
 }
@@ -214,7 +219,8 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
     internal::temp_connections_t<Node,Place> temp_conn;
     for(size_t i = 0; i < expr_as_list->childrens(); ++i) {
         std::shared_ptr<SList> child = read_slist_from_sexpr((*expr_as_list)[i]);
-        internal::connect<Node,Place>(child, temp_conn, temp_frames, indexes, m_frames);
+        internal::connect<Node,Place>(child, temp_conn, temp_frames,
+                indexes, m_dico, m_frames);
     }
 
     // Set them

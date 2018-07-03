@@ -45,6 +45,7 @@ void FrameScene::reset(const SExpr& expr) {
 
     for(auto cc_it = m_graph->ccbegin(); cc_it != m_graph->ccend(); ++cc_it) {
         std::vector<FrameGraph<Node*,size_t>::PlaceId> cc(cc_it->begin(), cc_it->end());
+        if(cc.empty()) continue;
         for(size_t i = 0; i < cc.size() - 1; ++i) {
             m_scene.createConnection(*cc[i].node, cc[i].place
                                     ,*cc[i+1].node, cc[i+1].place);
