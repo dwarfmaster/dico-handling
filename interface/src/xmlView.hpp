@@ -13,6 +13,7 @@ class XmlView : public QTextEdit {
         virtual ~XmlView();
 
         void setText(const std::string& str);
-        void set(const TreeSequence<QtNodes::Node*,size_t>& tree, size_t word);
+        void set(const TreeSequence<QtNodes::Node*,size_t>& tree, size_t word,
+                const std::vector<std::pair<size_t,size_t>>& wordBounds);
 };
 
