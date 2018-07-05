@@ -3,6 +3,7 @@
 
 #include "sexpr.hpp"
 #include "framegraph.hpp"
+#include "utils.hpp"
 #include <string>
 #include <vector>
 #include <map>
@@ -11,8 +12,10 @@
 #include <cassert>
 #include <boost/optional.hpp>
 #include <boost/bimap.hpp>
+#include <boost/iterator/transform_iterator.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/graph/topological_sort.hpp>
+#include <boost/graph/graphviz.hpp>
 #include <boost/property_map/property_map.hpp>
 
 
@@ -158,8 +161,7 @@ size_t TreeSequence<Node,Place>::get_word_from_var(const std::string& var) const
 }
 
 /* A graph structure for boost
- * Implements the concepts Graph, VertexListGraph, IncidenceGraph and PropertyGraph
- * for vertex_index
+ * Implements the concepts Graph, VertexListGraph, IncidenceGraph and EdgeListGraph
  */
 template <typename Node, typename Place>
 struct FrGraph {
@@ -182,6 +184,7 @@ namespace internal {
     };
     Edge make_edge(size_t src, size_t trg);
 
+    /* Could be replaced by a boost::filter_iterator */
     template <typename Node,typename Place>
     struct FrGraphEdgeIterator {
         typename std::vector<typename FrGraph<Node,Place>::Fr>::const_iterator actual;
@@ -191,12 +194,12 @@ namespace internal {
         FrGraphEdgeIterator() : actual(), start(0), graph(nullptr)
                             { }
 
-        bool operator==(const FrGraphEdgeIterator& it) {
+        bool operator==(const FrGraphEdgeIterator& it) const {
             return (!graph && !it.graph)
                 || (start == it.start && actual == it.actual);
         }
 
-        bool operator!=(const FrGraphEdgeIterator& it) {
+        bool operator!=(const FrGraphEdgeIterator& it) const {
             return !operator==(it);
         }
 
@@ -245,7 +248,8 @@ namespace internal {
 namespace boost {
 
     class fr_graph_tag : public vertex_list_graph_tag,
-                         public incidence_graph_tag
+                         public incidence_graph_tag,
+                         public edge_list_graph_tag
     { };
 
     template <typename Node, typename Place>
@@ -269,6 +273,19 @@ namespace boost {
         /* IncidenceGraph concept */
         using out_edge_iterator = ::internal::FrGraphEdgeIterator<Node,Place>;
         using degree_size_type  = size_t;
+
+        /* EdgeListGraph concept */
+        using edge_iterator_inner =
+            typename std::vector<typename FrameGraph<Node,Place>::Frame>::const_iterator;
+        using edge_iterator_outer =
+            boost::transform_iterator<
+                std::function<ItPair<out_edge_iterator>
+                              (const typename FrameGraph<Node,Place>::Frame&)>,
+                edge_iterator_inner>;
+        using edge_iterator   = flattening_iterator<
+            edge_iterator_outer,
+            typename ItPair<out_edge_iterator>::iterator>;
+        using edges_size_type = size_t;
     };
 }
 
@@ -326,6 +343,31 @@ out_degree(typename GTG<Node,Place>::vertex_descriptor u,
     return count;
 }
 
+template <typename Node, typename Place>
+static std::pair<typename GTG<Node,Place>::edge_iterator,
+                 typename GTG<Node,Place>::edge_iterator>
+edges(const FrGraph<Node,Place>& gr) {
+    using Iterator      = typename GTG<Node,Place>::edge_iterator;
+    using EdgeIterator  = typename GTG<Node,Place>::out_edge_iterator;
+    using InnerIterator = typename GTG<Node,Place>::edge_iterator_inner;
+    using TransIterator = typename GTG<Node,Place>::edge_iterator_outer;
+
+    Iterator end;
+    TransIterator tit = TransIterator(gr.vertices.begin(),
+            [gr] (const typename FrameGraph<Node,Place>::Frame& fr)
+                 { return ItPair<EdgeIterator>(out_edges<Node,Place>(fr.index, gr)); });
+    TransIterator tend;
+    Iterator begin(tit, tend);
+    return std::make_pair(begin, end);
+}
+
+template <typename Node, typename Place>
+static typename GTG<Node,Place>::edges_size_type
+num_edges(const FrGraph<Node,Place>& gr) {
+    auto pr = edges(gr);
+    return std::distance(pr.first, pr.second);
+}
+
 namespace std {
     template <typename Node, typename Place>
     struct iterator_traits<internal::FrGraphEdgeIterator<Node,Place>> {
@@ -348,19 +390,24 @@ TreeSequence<Node,Place>::get_word_frames(size_t word_id) const {
     }
 
     /* We can't use std::sort because it doesn't support partial orders
-     * but strict weak orderings */
-    // std::sort(ret.begin(), ret.end(),
-    //         [this](const Fr& f1, const Fr& f2)
-    //         { return this->m_frames->dico()
-    //               .related(f1.name, f2.name); });
+     * but only strict weak orderings */
     FrGraph<Node,Place> graph(m_frames->dico());
     graph.vertices = ret;
+
+    std::ofstream ofs("graph.dot");
+    boost::write_graphviz_dp(ofs, graph,
+            boost::dynamic_properties()
+            .property<boost::typed_identity_property_map<size_t>>
+            ("node_id", boost::typed_identity_property_map<size_t>()));
+    ofs.close();
+
     std::vector<size_t> indexes;
     boost::topological_sort(graph, std::back_inserter(indexes),
             boost::vertex_index_map(boost::typed_identity_property_map<size_t>()));
 
-    ret.clear();
-    /* TODO refill ret */
+    std::transform(indexes.begin(), indexes.end(), ret.begin(),
+            [&graph] (size_t id)
+                     { return graph.vertices[id]; });
     return ret;
 }
 
