@@ -38,6 +38,7 @@ class FrameGraph {
         struct Frame {
             std::string name;
             std::string lexeme_var;
+            size_t index;
             Node node;
             std::map<std::string,PlaceId> fes;
         };
@@ -212,6 +213,7 @@ void FrameGraph<Node,Place>::compute(const SExpr& expr, Handler handler) {
             if(pr.first.empty()) continue;
             indexes[std::make_pair(frl.first,pr.first)] = m_frames.size();
             m_frames.push_back(handler(pr.first, pr.second));
+            m_frames.back().index = m_frames.size() - 1;
         }
     }
 
