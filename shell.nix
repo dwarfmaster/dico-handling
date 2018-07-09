@@ -4,7 +4,7 @@ let
 
   inherit (nixpkgs) pkgs;
 
-  f = { mkDerivation, array, base, containers, directory, fgl
+  f = { mkDerivation, array, base, containers, directory, fgl, pretty
       , graphviz, hxt, json, linear, mtl, stdenv, text, transformers
       }:
       mkDerivation {
@@ -15,7 +15,7 @@ let
         isExecutable = true;
         executableHaskellDepends = [
           array base containers directory fgl graphviz hxt json linear mtl
-          text transformers
+          text transformers pretty
         ];
         buildDepends = with pkgs; [
           graphviz cabal-install
