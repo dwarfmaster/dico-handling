@@ -40,8 +40,8 @@ FrameDico::FrameDico(const std::string& path) {
         std::string name(object["name"].toString().toUtf8().constData());
         name = to_lower_copy(name);
 
-        std::string id(object["id"].toString().toUtf8().constData());
-        frameNames[atoi<uint64_t>(id)] = name;
+        uint64_t id = static_cast<uint64_t>(object["id"].toDouble());
+        frameNames[id] = name;
         for(auto fe : object["fes"].toArray()) {
             auto fe_array = fe.toArray();
             std::string fe_name = to_lower_copy(std::string(
@@ -56,9 +56,11 @@ FrameDico::FrameDico(const std::string& path) {
     for(auto it = root.begin(); it != root.end(); ++it) {
         QJsonObject object = it->toObject();
         std::string name(object["name"].toString().toUtf8().constData());
-        for(auto fr : object["rels"].toArray()) {
+        name = to_lower_copy(name);
+        QJsonArray rels = object["rels"].toArray();
+        for(auto fr : rels) {
             m_frames[name].direct_parents.push_back(frameNames[
-                    atoi<uint64_t>(std::string(fr.toString().toUtf8().constData()))]);
+                    static_cast<uint64_t>(fr.toDouble())]);
         }
     }
 
