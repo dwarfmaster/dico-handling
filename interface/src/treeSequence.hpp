@@ -15,7 +15,6 @@
 #include <boost/iterator/transform_iterator.hpp>
 #include <boost/range/irange.hpp>
 #include <boost/graph/topological_sort.hpp>
-#include <boost/graph/graphviz.hpp>
 #include <boost/property_map/property_map.hpp>
 
 
@@ -203,17 +202,29 @@ namespace internal {
             return !operator==(it);
         }
 
-        inline void incr() {
+        inline void move() {
             if(!graph) return;
+            if(actual == graph->vertices.end()) {
+                graph = nullptr;
+                return;
+            }
 
-            do {
+            while(!graph->dico.related(graph->vertices[start].name, actual->name)) {
                 ++actual;
+
                 /* Reached end */
                 if(actual == graph->vertices.end()) {
                     graph = nullptr;
                     return;
                 }
-            } while(!graph->dico.related(graph->vertices[start].name, actual->name));
+            }
+        }
+
+        inline void incr() {
+            if(!graph) return;
+
+            ++actual;
+            move();
         }
 
         inline Edge get() const {
@@ -329,6 +340,7 @@ out_edges(typename GTG<Node,Place>::vertex_descriptor u,
     beg.graph  = &gr;
     beg.start  = u;
     beg.actual = gr.vertices.begin();
+    beg.move();
     return std::make_pair(beg, end);
 }
 
@@ -394,18 +406,11 @@ TreeSequence<Node,Place>::get_word_frames(size_t word_id) const {
     FrGraph<Node,Place> graph(m_frames->dico());
     graph.vertices = ret;
 
-    std::ofstream ofs("graph.dot");
-    boost::write_graphviz_dp(ofs, graph,
-            boost::dynamic_properties()
-            .property<boost::typed_identity_property_map<size_t>>
-            ("node_id", boost::typed_identity_property_map<size_t>()));
-    ofs.close();
-
     std::vector<size_t> indexes;
     boost::topological_sort(graph, std::back_inserter(indexes),
             boost::vertex_index_map(boost::typed_identity_property_map<size_t>()));
 
-    std::transform(indexes.begin(), indexes.end(), ret.begin(),
+    std::transform(indexes.begin(), indexes.end(), ret.rbegin(),
             [&graph] (size_t id)
                      { return graph.vertices[id]; });
     return ret;
