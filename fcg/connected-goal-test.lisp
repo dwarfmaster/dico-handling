@@ -68,13 +68,10 @@
       append (get-unit-meaning unit))))
 
 (defun connected-goal-send-data (node)
-  (format t "Connection test~%")
   (let ((meaning (extract-meaning-from-node node))
         (tree    (node-to-structure         node))
         (seq     (get-node-sequence         node))
         (strm    (usocket:socket-stream *connected-goal-socket*)))
-    (format t "Sending: ~A~%" (list meaning tree seq))
-    (force-output t)
     (format strm "~A~%" (list meaning tree seq))
     (force-output strm)))
 
