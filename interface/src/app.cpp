@@ -11,6 +11,7 @@
 #include <nodes/NodeStyle>
 #include <nodes/FlowViewStyle>
 #include <nodes/ConnectionStyle>
+#include <QtGui/QClipboard>
 
 
 using namespace std::chrono_literals;
@@ -45,8 +46,8 @@ App::App(int argc, char *argv[])
     m_line = new QLineEdit(m_root);
     layout->addWidget(m_line, n+3, 0, 1, n);
 
-    QPushButton* button = new QPushButton("Compute", m_root);
-    layout->addWidget(button, n+3, n, 1, 1);
+    m_compute = new QPushButton("Compute", m_root);
+    layout->addWidget(m_compute, n+3, n, 1, 1);
 
     m_xml = new XmlView(m_root);
     m_xml->setEnabled(false);
@@ -64,10 +65,18 @@ App::App(int argc, char *argv[])
     m_valid->setEnabled(false);
     layout->addWidget(m_valid, n+2, n, 1, 1);
 
-    QObject::connect(button, SIGNAL(clicked()),
+    QObject::connect(m_compute, SIGNAL(clicked()),
             this, SLOT(compute()));
     QObject::connect(m_line, SIGNAL(cursorPositionChanged(int,int)),
             this, SLOT(lineCursor(int,int)));
+    QObject::connect(m_line, SIGNAL(returnPressed()),
+            this, SLOT(compute()));
+    QObject::connect(m_copy, SIGNAL(clicked()),
+            this, SLOT(copy()));
+    QObject::connect(m_recompute, SIGNAL(clicked()),
+            this, SLOT(recompute()));
+    QObject::connect(m_valid, SIGNAL(clicked()),
+            this, SLOT(valid()));
 }
 
 App::~App() {
@@ -83,13 +92,10 @@ int App::exec() {
             m_scene->reset(expr);
             m_treeSeq.rebuild(m_lexemes, m_scene->graph(), expr);
 
-            for(size_t id = 0; id < m_lexemes.size(); ++id) {
-                std::cout << id << "(" << m_treeSeq.get_word(id) << ") -> ";
-                for(auto p : m_treeSeq.encapsulate(id)) {
-                    std::cout << "<" << p.first << ";" << p.second << "> -> ";
-                }
-                std::cout << std::endl;
-            }
+            m_xml->setEnabled(true);
+            m_copy->setEnabled(true);
+            m_recompute->setEnabled(true);
+            m_valid->setEnabled(true);
         }
     }
 
@@ -135,6 +141,7 @@ std::vector<std::string>& apply_splits(
 }
         
 void App::compute() {
+    m_compute->setEnabled(false);
     std::string data = m_line->displayText().toUtf8().constData();
     boost::algorithm::to_lower(data);
 
@@ -169,6 +176,33 @@ void App::lineCursor(int oldPos, int newPos) {
         << " to " << m_lexemes[getIdFromPos(m_lexBounds, newPos)] << std::endl;
 }
         
+void App::copy() {
+    QClipboard* clip = clipboard();
+    clip->setText(m_xml->toPlainText());
+}
+
+void App::recompute() {
+    m_server.send(make_sexpr("nil"));
+    reset();
+}
+
+void App::valid() {
+    m_server.send(make_sexpr("t"));
+    reset();
+    m_line->setText("");
+    m_line->setReadOnly(false);
+    m_compute->setEnabled(true);
+}
+
+void App::reset() {
+    m_copy->setEnabled(false);
+    m_recompute->setEnabled(false);
+    m_valid->setEnabled(false);
+    m_xml->setText("");
+    m_xml->setEnabled(false);
+}
+
+
 static void setStyle()
 {
   ConnectionStyle::setConnectionStyle(
