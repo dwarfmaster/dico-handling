@@ -256,3 +256,11 @@ std::shared_ptr<SList> read_slist_from_sexpr(const SExpr& expr) {
         );
 }
 
+SExpr make_sexpr(const std::string& str) {
+    return SExpr(str);
+}
+
+SExpr make_sexpr(std::shared_ptr<SList>& lst) {
+    return SExpr(lst);
+}
+
